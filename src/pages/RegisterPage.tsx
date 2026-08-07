@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Eye, EyeOff, Mail, Lock, User, GraduationCap, Building, Calendar, ArrowRight, ArrowLeft, Wand2, CheckCircle2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import BidangIlmuSelector from '../components/BidangIlmuSelector';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -208,13 +209,13 @@ export default function RegisterPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Jurusan / Program Studi</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <GraduationCap className="h-5 w-5 text-slate-400" />
-                      </div>
-                      <input name="major" type="text" value={formData.major} onChange={handleChange} required className={`appearance-none block w-full pl-10 pr-3 py-2.5 border ${errors.major ? 'border-red-500' : 'border-slate-300'} rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm transition-colors bg-slate-50 focus:bg-white`} placeholder="Contoh: Ilmu Komputer" />
-                    </div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">Jurusan / Program Studi / Bidang Ilmu</label>
+                    <BidangIlmuSelector
+                      value={formData.major}
+                      onChange={(val) => setFormData(prev => ({ ...prev, major: val }))}
+                      placeholder="Contoh: Pendidikan Matematika, Teknik Informatika, keperawatan..."
+                      required={true}
+                    />
                     {errors.major && <p className="mt-1 text-xs text-red-500">{errors.major}</p>}
                   </div>
 

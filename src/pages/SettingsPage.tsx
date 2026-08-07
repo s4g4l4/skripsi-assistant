@@ -4,6 +4,7 @@ import {
   Check, Sparkles, Award, Sliders, Bell, Laptop, GraduationCap
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import BidangIlmuSelector from '../components/BidangIlmuSelector';
 
 export default function SettingsPage() {
   const [userInfo, setUserInfo] = useState(() => {
@@ -171,13 +172,11 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Program Studi / Jurusan</label>
-                  <input
-                    type="text"
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Program Studi / Bidang Ilmu</label>
+                  <BidangIlmuSelector
                     value={userInfo.major || ''}
-                    onChange={(e) => setUserInfo({ ...userInfo, major: e.target.value })}
-                    placeholder="Contoh: Teknik Informatika"
-                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white outline-none font-medium"
+                    onChange={(val) => setUserInfo({ ...userInfo, major: val })}
+                    placeholder="Contoh: Pendidikan Matematika, Teknik Informatika, Keperawatan..."
                   />
                 </div>
               </div>

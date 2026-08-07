@@ -26,6 +26,7 @@ export default function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/proposal/new" element={<ProposalWizardPage />} />
+        <Route path="/proposal-wizard" element={<ProposalWizardPage />} />
         <Route path="/editor" element={<EditorPage />} />
         <Route path="/auto-format" element={<AutoFormatPage />} />
         <Route path="/citation-manager" element={<CitationManagerPage />} />

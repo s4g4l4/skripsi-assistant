@@ -177,6 +177,54 @@ export function getRemainingTimeString(user: UserAccessInfo): string {
   return `${minutes} Menit Tersisa`;
 }
 
+export function adjustUserAccessTime(
+  userEmail: string,
+  adjustment: { hours?: number; days?: number; action: 'add' | 'reduce' }
+) {
+  const allUsers = getStoredUsers();
+  const userIndex = allUsers.findIndex(u => u.email.toLowerCase() === userEmail.toLowerCase());
+
+  if (userIndex === -1) return;
+
+  const target = allUsers[userIndex];
+  const now = Date.now();
+
+  let deltaMs = 0;
+  if (adjustment.hours) deltaMs += Math.abs(adjustment.hours) * 3600 * 1000;
+  if (adjustment.days) deltaMs += Math.abs(adjustment.days) * 24 * 3600 * 1000;
+
+  if (adjustment.action === 'reduce') {
+    deltaMs = -deltaMs;
+  }
+
+  // Base time calculation
+  let baseTime = target.accessGrantedUntil;
+  if (target.accessStatus === 'unlimited') {
+    baseTime = now;
+  } else if (target.accessGrantedUntil < now || target.accessStatus !== 'active') {
+    baseTime = now;
+  }
+
+  const newTime = baseTime + deltaMs;
+
+  if (newTime <= now) {
+    target.accessGrantedUntil = now;
+    target.accessStatus = 'expired';
+  } else {
+    target.accessGrantedUntil = newTime;
+    target.accessStatus = 'active';
+  }
+
+  allUsers[userIndex] = target;
+  saveStoredUsers(allUsers);
+
+  // If editing currently logged in user, update current user_info as well
+  const current = getCurrentUserAccess();
+  if (current.email.toLowerCase() === userEmail.toLowerCase()) {
+    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(target));
+  }
+}
+
 export function extendUserAccess(userEmail: string, durationToAdd: { hours?: number; days?: number; unlimited?: boolean }) {
   const allUsers = getStoredUsers();
   const userIndex = allUsers.findIndex(u => u.email.toLowerCase() === userEmail.toLowerCase());

@@ -1,5 +1,6 @@
-import { FileText, CheckCircle, TrendingDown, BookOpen } from 'lucide-react';
+import { FileText, CheckCircle, TrendingDown, BookOpen, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
+import { Link } from 'react-router-dom';
 
 export function MainFeatures() {
   return (
@@ -55,21 +56,30 @@ export function MainFeatures() {
                  <BookOpen className="w-64 h-64 text-white" />
                </div>
                <h3 className="text-xl font-bold text-white mb-6">Upload Pedoman Kampusmu</h3>
-               <div className="border-2 border-dashed border-slate-700 rounded-2xl p-8 text-center bg-slate-800/80 hover:bg-slate-800 transition-colors cursor-pointer group">
+               <Link 
+                 to="/proposal-wizard"
+                 className="block border-2 border-dashed border-slate-700 rounded-2xl p-8 text-center bg-slate-800/80 hover:bg-slate-800 transition-colors cursor-pointer group"
+               >
                  <BookOpen className="w-12 h-12 text-slate-400 mx-auto mb-4 group-hover:text-emerald-400 transition-colors" />
-                 <p className="text-slate-200 font-medium mb-2">Drag & drop file PDF pedoman</p>
-                 <p className="text-xs text-slate-500">Maksimal 10MB (PDF)</p>
-               </div>
+                 <p className="text-slate-200 font-medium mb-2">Drag & drop file PDF / DOCX pedoman</p>
+                 <p className="text-xs text-slate-500">Maksimal 25MB (PDF/DOCX)</p>
+                 <span className="inline-flex items-center gap-1.5 mt-4 text-xs font-bold text-emerald-400 group-hover:underline">
+                   Mulai Upload Sekakarang <ArrowRight className="w-3.5 h-3.5" />
+                 </span>
+               </Link>
              </div>
           </motion.div>
           <div className="order-1 md:order-2">
             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-6">AI Parser Buku Panduan Kampus</h2>
             <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-              Tidak menemukan kampusmu di daftar template? Upload buku pedoman skripsi kampusmu (PDF), dan AI kami akan mempelajari aturan margin, font, letak logo, dan penomoran halamannya secara real-time.
+              Tidak menemukan kampusmu di daftar template? Upload buku pedoman skripsi kampusmu (PDF / DOCX), dan AI kami akan mempelajari aturan margin, font, letak logo, dan penomoran halamannya secara real-time.
             </p>
-            <button className="px-6 py-3 border-2 border-slate-900 text-slate-900 font-bold rounded-full hover:bg-slate-900 hover:text-white transition-colors">
-              Lihat Demo Fitur
-            </button>
+            <Link 
+              to="/proposal-wizard" 
+              className="inline-flex items-center gap-2 px-6 py-3 border-2 border-slate-900 text-slate-900 font-bold rounded-full hover:bg-slate-900 hover:text-white transition-colors"
+            >
+              Coba Upload Buku Panduan <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         </div>
 

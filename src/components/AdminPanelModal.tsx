@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { 
   Users, Clock, ShieldCheck, ShieldAlert, X, PlusCircle, Ban, 
-  CheckCircle2, RefreshCw, Calendar, Key, MessageSquare, Trash2, Lock
+  CheckCircle2, RefreshCw, Calendar, Key, MessageSquare, Trash2, Lock, Plus, Minus
 } from 'lucide-react';
 import { 
-  getStoredUsers, extendUserAccess, revokeUserAccess, deleteUserAccount, UserAccessInfo, 
+  getStoredUsers, extendUserAccess, adjustUserAccessTime, revokeUserAccess, deleteUserAccount, UserAccessInfo, 
   getRemainingTimeString, isAccessValid, ADMIN_EMAIL, ADMIN_WA_NUMBER 
 } from '../utils/accessControl';
 
@@ -15,9 +15,9 @@ interface AdminPanelModalProps {
 
 export default function AdminPanelModal({ isOpen, onClose }: AdminPanelModalProps) {
   const [users, setUsers] = useState<UserAccessInfo[]>(() => getStoredUsers());
-  const [selectedUserEmail, setSelectedUserEmail] = useState<string>('');
-  const [customHours, setCustomHours] = useState<number>(5);
-  const [customDays, setCustomDays] = useState<number>(1);
+  const [customInputs, setCustomInputs] = useState<{
+    [email: string]: { amount: number; unit: 'hours' | 'days' };
+  }>({});
   const [messageNotification, setMessageNotification] = useState<string>('');
 
   if (!isOpen) return null;
@@ -37,6 +37,44 @@ export default function AdminPanelModal({ isOpen, onClose }: AdminPanelModalProp
     extendUserAccess(email, { days });
     refreshUsers();
     setMessageNotification(`Akses +${days} Hari berhasil ditambahkan untuk ${email}`);
+    setTimeout(() => setMessageNotification(''), 3000);
+  };
+
+  const handleReduceHours = (email: string, hours: number) => {
+    adjustUserAccessTime(email, { hours, action: 'reduce' });
+    refreshUsers();
+    setMessageNotification(`Akses -${hours} Jam berhasil dikurangi untuk ${email}`);
+    setTimeout(() => setMessageNotification(''), 3000);
+  };
+
+  const handleReduceDays = (email: string, days: number) => {
+    adjustUserAccessTime(email, { days, action: 'reduce' });
+    refreshUsers();
+    setMessageNotification(`Akses -${days} Hari berhasil dikurangi untuk ${email}`);
+    setTimeout(() => setMessageNotification(''), 3000);
+  };
+
+  const handleCustomAdjust = (email: string, action: 'add' | 'reduce') => {
+    const custom = customInputs[email] || { amount: 1, unit: 'hours' };
+    if (!custom.amount || custom.amount <= 0) return;
+
+    if (custom.unit === 'hours') {
+      if (action === 'add') {
+        extendUserAccess(email, { hours: custom.amount });
+      } else {
+        adjustUserAccessTime(email, { hours: custom.amount, action: 'reduce' });
+      }
+      setMessageNotification(`Akses ${action === 'add' ? '+' : '-'}${custom.amount} Jam berhasil diproses untuk ${email}`);
+    } else {
+      if (action === 'add') {
+        extendUserAccess(email, { days: custom.amount });
+      } else {
+        adjustUserAccessTime(email, { days: custom.amount, action: 'reduce' });
+      }
+      setMessageNotification(`Akses ${action === 'add' ? '+' : '-'}${custom.amount} Hari berhasil diproses untuk ${email}`);
+    }
+
+    refreshUsers();
     setTimeout(() => setMessageNotification(''), 3000);
   };
 
@@ -67,7 +105,7 @@ export default function AdminPanelModal({ isOpen, onClose }: AdminPanelModalProp
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 my-8 max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-slate-200 my-8 max-h-[92vh] flex flex-col">
         
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-100">
@@ -77,7 +115,7 @@ export default function AdminPanelModal({ isOpen, onClose }: AdminPanelModalProp
             </div>
             <div>
               <h2 className="text-lg font-black text-slate-900 tracking-tight">Panel Kelola Akses User (Admin)</h2>
-              <p className="text-xs text-slate-500">Atur durasi jam/hari akses penuh atau batalkan akses user</p>
+              <p className="text-xs text-slate-500">Atur & sesuaikan (tambah/kurang) jam dan hari masa aktif pengguna</p>
             </div>
           </div>
           <button 
@@ -102,87 +140,153 @@ export default function AdminPanelModal({ isOpen, onClose }: AdminPanelModalProp
               <Users className="w-4 h-4 text-emerald-600" /> Daftar User & Status Masa Aktif
             </h3>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               {users.map((u) => {
                 const isValid = isAccessValid(u);
                 const remainingStr = getRemainingTimeString(u);
                 const isAdmin = u.role === 'admin' || u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
+                const userCustom = customInputs[u.email] || { amount: 1, unit: 'hours' };
+
                 return (
                   <div 
                     key={u.id}
-                    className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3"
                   >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 text-xs">{u.name}</span>
-                        {isAdmin ? (
-                          <span className="bg-slate-900 text-white text-[10px] font-black px-2 py-0.5 rounded-full">ADMIN</span>
-                        ) : isValid ? (
-                          <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black px-2 py-0.5 rounded-full">AKSES AKTIF</span>
-                        ) : (
-                          <span className="bg-red-50 text-red-700 border border-red-200 text-[10px] font-black px-2 py-0.5 rounded-full">AKSES BERAKHIR</span>
-                        )}
+                    {/* User Info Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900 text-sm">{u.name}</span>
+                          {isAdmin ? (
+                            <span className="bg-slate-900 text-white text-[10px] font-black px-2 py-0.5 rounded-full">ADMIN</span>
+                          ) : isValid ? (
+                            <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black px-2 py-0.5 rounded-full">AKSES AKTIF</span>
+                          ) : (
+                            <span className="bg-red-50 text-red-700 border border-red-200 text-[10px] font-black px-2 py-0.5 rounded-full">AKSES BERAKHIR</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 font-mono mt-0.5">{u.email}</p>
                       </div>
-                      <p className="text-xs text-slate-500 font-mono">{u.email}</p>
-                      <div className="text-[11px] font-semibold text-emerald-700 flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-emerald-600" /> {remainingStr}
+
+                      <div className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200/80 flex items-center gap-1.5 self-start sm:self-center">
+                        <Clock className="w-3.5 h-3.5 text-emerald-600" /> {remainingStr}
                       </div>
                     </div>
 
                     {!isAdmin && (
-                      <div className="flex flex-wrap items-center gap-2">
-                        {/* Quick Add Hour/Day Buttons */}
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <button
-                            onClick={() => handleGrantHours(u.email, 5)}
-                            className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-xl border border-emerald-200 transition-colors"
-                          >
-                            +5 Jam
-                          </button>
-                          <button
-                            onClick={() => handleGrantDays(u.email, 1)}
-                            className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs rounded-xl border border-blue-200 transition-colors"
-                          >
-                            +1 Hari
-                          </button>
-                          <button
-                            onClick={() => handleGrantDays(u.email, 7)}
-                            className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold text-xs rounded-xl border border-indigo-200 transition-colors"
-                          >
-                            +7 Hari
-                          </button>
-                          <button
-                            onClick={() => handleGrantDays(u.email, 30)}
-                            className="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-800 font-bold text-xs rounded-xl border border-purple-200 transition-colors"
-                          >
-                            +30 Hari
-                          </button>
-                          <button
-                            onClick={() => handleGrantUnlimited(u.email)}
-                            className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 font-extrabold text-xs rounded-xl border border-amber-300 transition-colors"
-                          >
-                            ⭐ Unlimited
-                          </button>
+                      <div className="space-y-3 pt-1">
+                        {/* Quick Add Action Buttons */}
+                        <div className="bg-slate-50/80 p-2.5 rounded-xl border border-slate-200/60 space-y-1.5">
+                          <span className="text-[11px] font-extrabold text-emerald-800 flex items-center gap-1">
+                            <PlusCircle className="w-3.5 h-3.5 text-emerald-600" /> Tambah Masa Aktif (+)
+                          </span>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <button
+                              onClick={() => handleGrantHours(u.email, 1)}
+                              className="px-2.5 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold text-xs rounded-lg transition-colors"
+                            >
+                              +1 Jam
+                            </button>
+                            <button
+                              onClick={() => handleGrantHours(u.email, 5)}
+                              className="px-2.5 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold text-xs rounded-lg transition-colors"
+                            >
+                              +5 Jam
+                            </button>
+                            <button
+                              onClick={() => handleGrantDays(u.email, 1)}
+                              className="px-2.5 py-1 bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold text-xs rounded-lg transition-colors"
+                            >
+                              +1 Hari
+                            </button>
+                            <button
+                              onClick={() => handleGrantDays(u.email, 7)}
+                              className="px-2.5 py-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-bold text-xs rounded-lg transition-colors"
+                            >
+                              +7 Hari
+                            </button>
+                            <button
+                              onClick={() => handleGrantDays(u.email, 30)}
+                              className="px-2.5 py-1 bg-purple-100 hover:bg-purple-200 text-purple-900 font-bold text-xs rounded-lg transition-colors"
+                            >
+                              +30 Hari
+                            </button>
+                            <button
+                              onClick={() => handleGrantUnlimited(u.email)}
+                              className="px-2.5 py-1 bg-amber-200 hover:bg-amber-300 text-amber-950 font-black text-xs rounded-lg transition-colors flex items-center gap-1 shadow-2xs"
+                            >
+                              ⭐ Unlimited
+                            </button>
+                          </div>
                         </div>
 
-                        {/* Revoke Button */}
-                        <button
-                          onClick={() => handleRevoke(u.email)}
-                          className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs rounded-xl border border-amber-200 transition-colors flex items-center gap-1"
-                          title="Batalkan Akses User"
-                        >
-                          <Ban className="w-3.5 h-3.5" /> Batalkan
-                        </button>
+                        {/* Custom Input Adjustment Box */}
+                        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-bold text-slate-700">Atur Kustom:</span>
+                            <input
+                              type="number"
+                              min="1"
+                              max="365"
+                              value={userCustom.amount}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value) || 1;
+                                setCustomInputs(prev => ({
+                                  ...prev,
+                                  [u.email]: { ...userCustom, amount: val }
+                                }));
+                              }}
+                              className="w-16 px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                            />
+                            <select
+                              value={userCustom.unit}
+                              onChange={(e) => {
+                                const unit = e.target.value as 'hours' | 'days';
+                                setCustomInputs(prev => ({
+                                  ...prev,
+                                  [u.email]: { ...userCustom, unit }
+                                }));
+                              }}
+                              className="px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                            >
+                              <option value="hours">Jam</option>
+                              <option value="days">Hari</option>
+                            </select>
 
-                        {/* Delete Account Button (Admin Only) */}
-                        <button
-                          onClick={() => handleDelete(u.email)}
-                          className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1 shadow-xs"
-                          title="Hapus Akun Permanen (Khusus Admin)"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" /> Hapus Akun
-                        </button>
+                            <button
+                              onClick={() => handleCustomAdjust(u.email, 'add')}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-colors flex items-center gap-1 shadow-xs"
+                            >
+                              <Plus className="w-3 h-3" /> Tambah
+                            </button>
+                            <button
+                              onClick={() => handleCustomAdjust(u.email, 'reduce')}
+                              className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-lg transition-colors flex items-center gap-1 shadow-xs"
+                            >
+                              <Minus className="w-3 h-3" /> Kurangi
+                            </button>
+                          </div>
+
+                          {/* Actions: Revoke & Delete */}
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleRevoke(u.email)}
+                              className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs rounded-lg border border-amber-200 transition-colors flex items-center gap-1"
+                              title="Batalkan Akses User"
+                            >
+                              <Ban className="w-3 h-3" /> Batalkan
+                            </button>
+
+                            <button
+                              onClick={() => handleDelete(u.email)}
+                              className="px-2 py-1 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-700 font-bold text-xs rounded-lg transition-colors flex items-center gap-1"
+                              title="Hapus Akun Permanen"
+                            >
+                              <Trash2 className="w-3 h-3" /> Hapus
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -199,7 +303,7 @@ export default function AdminPanelModal({ isOpen, onClose }: AdminPanelModalProp
             <div>
               <p className="font-extrabold text-slate-100">🔒 Perlindungan Data Pendaftar (Proteksi Perbaikan)</p>
               <p className="text-[11px] text-slate-300 mt-0.5">
-                Seluruh data akun pendaftar tersimpan secara permanen di penyimpanan aplikasi. Pembaruan/perbaikan sistem <strong>TIDAK AKAN menghapus akun terdaftar</strong>. Hanya Admin yang dapat menghapus akun secara manual melalui tombol "Hapus Akun" di atas.
+                Seluruh data akun pendaftar tersimpan secara permanen di penyimpanan aplikasi. Pembaruan/perbaikan sistem <strong>TIDAK AKAN menghapus akun terdaftar</strong>. Hanya Admin yang dapat menghapus akun secara manual melalui tombol "Hapus" di atas.
               </p>
             </div>
           </div>
@@ -235,3 +339,4 @@ export default function AdminPanelModal({ isOpen, onClose }: AdminPanelModalProp
     </div>
   );
 }
+

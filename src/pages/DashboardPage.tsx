@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Wand2, LayoutDashboard, PlusCircle, FileText, Edit3, Sparkles, 
   Layers, Presentation, MessageSquare, Database, History, 
-  Settings, LogOut, Bell, Search, Menu, X, ChevronRight, Upload, PlayCircle, Lightbulb, BookOpen, Users, Clock, ShieldCheck
+  Settings, LogOut, Bell, Search, Menu, X, ChevronRight, Upload, PlayCircle, Lightbulb, BookOpen, Users, Clock, ShieldCheck, Trash2
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
@@ -10,6 +10,7 @@ import {
   getCurrentUserAccess, isAccessValid, getRemainingTimeString, 
   ADMIN_EMAIL, UserAccessInfo 
 } from '../utils/accessControl';
+import { getUserProjects, openUserProject, deleteUserProject, UserProjectItem } from '../utils/projectStorage';
 import AccessExpiredModal from '../components/AccessExpiredModal';
 import AdminPanelModal from '../components/AdminPanelModal';
 
@@ -30,11 +31,6 @@ const SIDEBAR_MENU = [
   { name: 'Pengaturan', icon: Settings, path: '/pengaturan' },
 ];
 
-const RECENT_PROJECTS = [
-  { id: 1, title: 'Analisis Sentimen Pengguna Twitter terhadap UI/UX Aplikasi KAI Access', status: 'Revisi Bab 3', progress: 65, date: '2 hari yang lalu' },
-  { id: 2, title: 'Implementasi Machine Learning untuk Prediksi Harga Saham', status: 'Draft Proposal', progress: 20, date: '1 minggu yang lalu' },
-];
-
 export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
@@ -43,6 +39,19 @@ export default function DashboardPage() {
   const [userAccess, setUserAccess] = useState<UserAccessInfo>(() => getCurrentUserAccess());
   const [remainingTime, setRemainingTime] = useState<string>(() => getRemainingTimeString(userAccess));
   const [hasValidAccess, setHasValidAccess] = useState<boolean>(() => isAccessValid(userAccess));
+
+  const isAdmin = userAccess.role === 'admin' || userAccess.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const [projectsList, setProjectsList] = useState<UserProjectItem[]>([]);
+
+  // Refresh user projects
+  const refreshProjects = () => {
+    const list = getUserProjects(userAccess.email, isAdmin);
+    setProjectsList(list);
+  };
+
+  useEffect(() => {
+    refreshProjects();
+  }, [userAccess.email, isAdmin]);
 
   // Timer interval to keep remaining time countdown fresh
   useEffect(() => {
@@ -55,8 +64,6 @@ export default function DashboardPage() {
 
     return () => clearInterval(timer);
   }, []);
-
-  const isAdmin = userAccess.role === 'admin' || userAccess.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans text-slate-800 relative">
@@ -205,7 +212,10 @@ export default function DashboardPage() {
                   <p className="text-emerald-100 text-xs">Mulai kerangka skripsi</p>
                 </div>
               </button>
-              <button className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 transition-colors shadow-sm group">
+              <button 
+                onClick={() => navigate('/editor')}
+                className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 transition-colors shadow-sm group text-left cursor-pointer"
+              >
                 <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
                   <PlayCircle className="w-6 h-6" />
                 </div>
@@ -214,7 +224,10 @@ export default function DashboardPage() {
                   <p className="text-slate-500 text-xs">Edit draft terakhir</p>
                 </div>
               </button>
-              <button className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:border-amber-300 hover:bg-amber-50 transition-colors shadow-sm group">
+              <button 
+                onClick={() => navigate('/proposal/new?step=2', { state: { step: 2 } })}
+                className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:border-amber-300 hover:bg-amber-50 transition-colors shadow-sm group cursor-pointer text-left"
+              >
                 <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center group-hover:bg-amber-100 transition-colors">
                   <Upload className="w-6 h-6" />
                 </div>
@@ -233,7 +246,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-500">Total Project</p>
-                  <p className="text-2xl font-black text-slate-900">2</p>
+                  <p className="text-2xl font-black text-slate-900">{projectsList.length}</p>
                 </div>
               </div>
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
@@ -242,7 +255,11 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-500">Rata-rata Progress</p>
-                  <p className="text-2xl font-black text-slate-900">42%</p>
+                  <p className="text-2xl font-black text-slate-900">
+                    {projectsList.length > 0 
+                      ? Math.round(projectsList.reduce((acc, p) => acc + (p.progress || 0), 0) / projectsList.length) + '%' 
+                      : '0%'}
+                  </p>
                 </div>
               </div>
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
@@ -251,7 +268,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-500">Dokumen Tersimpan</p>
-                  <p className="text-2xl font-black text-slate-900">14</p>
+                  <p className="text-2xl font-black text-slate-900">{projectsList.length > 0 ? projectsList.length * 7 : 0}</p>
                 </div>
               </div>
             </div>
@@ -259,41 +276,108 @@ export default function DashboardPage() {
             {/* Recent Projects */}
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-slate-900">Proyek Terakhir</h2>
-                <Link to="/dashboard" className="text-sm font-medium text-emerald-600 hover:text-emerald-700">Lihat Semua</Link>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-slate-900">Proyek Terakhir</h2>
+                  {isAdmin && (
+                    <span className="text-[10px] bg-amber-100 text-amber-800 font-extrabold px-2.5 py-0.5 rounded-full border border-amber-300">
+                      Mode Admin (Semua User)
+                    </span>
+                  )}
+                </div>
+                <button onClick={() => navigate('/editor')} className="text-sm font-medium text-emerald-600 hover:text-emerald-700">Lihat di Editor</button>
               </div>
-              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                {RECENT_PROJECTS.map((project, i) => (
-                  <div key={project.id} className={`p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 hover:bg-slate-50 transition-colors ${i !== 0 ? 'border-t border-slate-100' : ''}`}>
-                    <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
-                      <FileText className="w-6 h-6 text-slate-500" />
-                    </div>
-                    <div className="flex-1 min-w-0 w-full">
-                      <Link to="/dashboard" className="text-base font-bold text-slate-900 truncate block hover:text-emerald-600 transition-colors">
-                        {project.title}
-                      </Link>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">
-                          {project.status}
+
+              {projectsList.length === 0 ? (
+                <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 shadow-sm">
+                  <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                  <h3 className="text-base font-bold text-slate-800 mb-1">Belum Ada Proyek Disimpan</h3>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto mb-5">
+                    Anda belum memiliki draf proposal atau karya ilmiah. Klik tombol di bawah untuk membuat proposal baru secara otomatis.
+                  </p>
+                  <button 
+                    onClick={() => navigate('/proposal/new')}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    Buat Proposal Baru
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-100">
+                  {projectsList.map((project) => (
+                    <div 
+                      key={project.id} 
+                      onClick={() => {
+                        openUserProject(project.id);
+                        navigate('/editor');
+                      }}
+                      className="p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 hover:bg-slate-50 transition-colors cursor-pointer group"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-100 transition-colors">
+                        <FileText className="w-6 h-6" />
+                      </div>
+                      <div className="flex-1 min-w-0 w-full">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+                            {project.documentType || 'Skripsi'}
+                          </span>
+                          <span className="text-xs text-slate-400">• {project.universityName}</span>
+                          {isAdmin && project.userEmail && (
+                            <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded border">
+                              User: {project.userEmail}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-base font-bold text-slate-900 truncate block group-hover:text-emerald-600 transition-colors">
+                          {project.title}
                         </span>
-                        <span className="text-xs text-slate-400">{project.date}</span>
+                        <div className="flex items-center gap-3 mt-1.5">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">
+                            {project.status || 'Draf Proposal'}
+                          </span>
+                          <span className="text-xs text-slate-400">
+                            Diubah: {new Date(project.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="w-full sm:w-56 flex items-center gap-3 shrink-0">
+                        <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-emerald-500 rounded-full"
+                            style={{ width: `${project.progress || 35}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-sm font-bold text-slate-700 w-9 text-right">{project.progress || 35}%</span>
+                        
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm('Apakah Anda yakin ingin menghapus proyek ini?')) {
+                              deleteUserProject(project.id);
+                              refreshProjects();
+                            }
+                          }}
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-1"
+                          title="Hapus Proyek"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+
+                        <button 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            openUserProject(project.id);
+                            navigate('/editor'); 
+                          }} 
+                          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                        >
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
                       </div>
                     </div>
-                    <div className="w-full sm:w-48 flex items-center gap-3">
-                      <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-emerald-500 rounded-full"
-                          style={{ width: `${project.progress}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-sm font-bold text-slate-700 w-9 text-right">{project.progress}%</span>
-                      <button className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors ml-2">
-                        <ChevronRight className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
           </div>

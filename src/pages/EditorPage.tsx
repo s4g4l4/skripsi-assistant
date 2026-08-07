@@ -2,14 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   FileText, Bold, Italic, Underline, Heading1, Heading2, 
   List, ListOrdered, Quote, Wand2, Save, X, ChevronLeft, 
-  ChevronRight, AlignLeft, AlignCenter, AlignRight, Check, Sparkles
+  ChevronRight, AlignLeft, AlignCenter, AlignRight, Check, Sparkles,
+  PanelLeft, Menu, Layers, BookOpen, GraduationCap, CheckCircle2, RefreshCw, Info
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { generateFullThesisContent, ThesisData, GuidelineRules } from '../utils/thesisGenerator';
 
 const DOCUMENTS = [
   { id: 'cover', title: 'Cover & Pengesahan' },
-  { id: 'bab1', title: 'Bab I: Pendahuluan', active: true },
+  { id: 'bab1', title: 'Bab I: Pendahuluan' },
   { id: 'bab2', title: 'Bab II: Tinjauan Pustaka' },
   { id: 'bab3', title: 'Bab III: Metodologi Penelitian' },
   { id: 'bab4', title: 'Bab IV: Hasil & Pembahasan' },
@@ -25,12 +27,118 @@ const AI_STYLES = [
 ];
 
 export default function EditorPage() {
-  const [content, setContent] = useState(`Latar Belakang\n\nPenelitian ini dilatarbelakangi oleh fenomena yang terjadi di lapangan di mana banyak pengguna merasa kesulitan dalam menggunakan aplikasi XYZ. Hal ini menyebabkan penurunan retensi pengguna secara drastis dalam 3 bulan terakhir. Oleh karena itu, perlu dilakukan evaluasi UI/UX menggunakan metode Usability Testing dan System Usability Scale (SUS) untuk mengidentifikasi masalah dan memberikan rekomendasi perbaikan desain.`);
+  const [thesisData, setThesisData] = useState<ThesisData | null>(null);
+  const [chapters, setChapters] = useState<Record<string, string>>({});
+  const [activeDocId, setActiveDocId] = useState('bab1');
+  const [content, setContent] = useState('');
   
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(new Date());
+  const [isRegeneratingSection, setIsRegeneratingSection] = useState(false);
+
+  // Load or initialize active thesis data on mount
+  useEffect(() => {
+    const stored = localStorage.getItem('active_thesis_data');
+    if (stored) {
+      try {
+        const parsed: ThesisData = JSON.parse(stored);
+        setThesisData(parsed);
+        setChapters(parsed.chapters || {});
+        setContent(parsed.chapters?.['bab1'] || '');
+        return;
+      } catch (e) {
+        console.error('Error parsing stored thesis data:', e);
+      }
+    }
+
+    // Default fallback thesis data if none exists in localStorage
+    const defaultUniv = { id: 'umsu', name: 'Universitas Muhammadiyah Sumatera Utara (UMSU)' };
+    const defaultGuidelines: GuidelineRules = {
+      fileOpened: 'Buku Panduan Skripsi UMSU 2024.pdf',
+      documentType: 'Skripsi',
+      font: 'Times New Roman',
+      fontSize: '12pt',
+      spacing: '1.5 Spasi Ganda',
+      margins: { top: '4 cm', left: '4 cm', bottom: '3 cm', right: '3 cm' },
+      pageNumberPos: 'Kanan Atas',
+      coverFormat: 'Logo Kampus 5x5 cm, Judul Kapital Bold'
+    };
+    const defaultAuthor = {
+      name: 'Rahmat Hidayat',
+      nim: '2005110012',
+      faculty: 'Fakultas Ekonomi dan Bisnis',
+      major: 'Manajemen',
+      year: '2025/2026',
+      supervisor: 'Dr. H. Ahmad Sahroni, M.Si.'
+    };
+    const defaultResearch = {
+      title: 'ANALISIS EFEKTIVITAS STRATEGI PEMASARAN DIGITAL DAN KUALITAS LAYANAN TERHADAP KEPUASAN KONSUMEN',
+      topic: 'Pemasaran Digital dan Kepuasan Pelanggan',
+      type: 'Kuantitatif',
+      population: 'Pelanggan Aktif Sektor UMKM di Medan',
+      variables: '(X1) Digital Marketing, (X2) Kualitas Layanan, (Y) Kepuasan Pelanggan'
+    };
+
+    const initialChapters = generateFullThesisContent(
+      'Skripsi',
+      defaultUniv,
+      defaultGuidelines,
+      defaultAuthor,
+      defaultResearch
+    );
+
+    const initialThesis: ThesisData = {
+      id: 'thesis_default',
+      documentType: 'Skripsi',
+      university: defaultUniv,
+      author: defaultAuthor,
+      research: defaultResearch,
+      guideline: defaultGuidelines,
+      chapters: initialChapters,
+      updatedAt: new Date().toISOString()
+    };
+
+    setThesisData(initialThesis);
+    setChapters(initialChapters);
+    setContent(initialChapters['bab1'] || '');
+    localStorage.setItem('active_thesis_data', JSON.stringify(initialThesis));
+  }, []);
+
+  const activeDoc = DOCUMENTS.find(d => d.id === activeDocId) || DOCUMENTS[1];
+
+  // Handle switching active chapter
+  const handleSelectDoc = (docId: string) => {
+    setActiveDocId(docId);
+    setMobileSidebarOpen(false);
+    setContent(chapters[docId] || '');
+  };
+
+  // Handle text editing
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newText = e.target.value;
+    setContent(newText);
+    const updatedChapters = { ...chapters, [activeDocId]: newText };
+    setChapters(updatedChapters);
+
+    if (thesisData) {
+      const updatedThesis = {
+        ...thesisData,
+        chapters: updatedChapters,
+        updatedAt: new Date().toISOString()
+      };
+      setThesisData(updatedThesis);
+      localStorage.setItem('active_thesis_data', JSON.stringify(updatedThesis));
+    }
+
+    setIsSaving(true);
+    setTimeout(() => {
+      setIsSaving(false);
+      setLastSaved(new Date());
+    }, 600);
+  };
   
   const [selectedText, setSelectedText] = useState('');
   const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
@@ -57,6 +165,42 @@ export default function EditorPage() {
     
     return () => clearInterval(timer);
   }, []);
+
+  // AI Regenerate current active chapter
+  const handleRegenerateChapter = () => {
+    if (!thesisData) return;
+    setIsRegeneratingSection(true);
+
+    setTimeout(() => {
+      const freshChapters = generateFullThesisContent(
+        thesisData.documentType,
+        thesisData.university,
+        thesisData.guideline,
+        thesisData.author,
+        thesisData.research
+      );
+
+      const updatedChapter = freshChapters[activeDocId] || content;
+      setContent(updatedChapter);
+      const updatedChapters = { ...chapters, [activeDocId]: updatedChapter };
+      setChapters(updatedChapters);
+
+      const updatedThesis = {
+        ...thesisData,
+        chapters: updatedChapters,
+        updatedAt: new Date().toISOString()
+      };
+      setThesisData(updatedThesis);
+      localStorage.setItem('active_thesis_data', JSON.stringify(updatedThesis));
+
+      setIsRegeneratingSection(false);
+      setIsSaving(true);
+      setTimeout(() => {
+        setIsSaving(false);
+        setLastSaved(new Date());
+      }, 500);
+    }, 1200);
+  };
 
   const handleSelectText = () => {
     if (editorRef.current) {
@@ -169,19 +313,54 @@ export default function EditorPage() {
       
       {/* Top Header */}
       <header className="h-14 border-b border-slate-200 bg-white flex items-center justify-between px-4 shrink-0">
-        <div className="flex items-center gap-4">
-          <Link to="/dashboard" className="text-slate-500 hover:text-slate-900 transition-colors">
+        <div className="flex items-center gap-3">
+          <Link to="/dashboard" className="text-slate-500 hover:text-slate-900 transition-colors p-1 rounded-lg hover:bg-slate-100">
             <ChevronLeft className="w-5 h-5" />
           </Link>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="font-semibold text-slate-900">Analisis Sentimen Pengguna Twitter...</span>
-            <span className="text-slate-400">/</span>
-            <span className="text-slate-600">Bab I: Pendahuluan</span>
+
+          {/* Sidebar Toggle for Desktop */}
+          <button 
+            onClick={() => setLeftSidebarOpen(!leftSidebarOpen)}
+            className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg text-xs font-bold transition-colors"
+            title="Sembunyikan/Tampilkan Sidebar Struktur Dokumen"
+          >
+            <PanelLeft className="w-4 h-4 text-slate-600" />
+            <span>Struktur</span>
+          </button>
+
+          {/* Sidebar Toggle for Mobile */}
+          <button 
+            onClick={() => setMobileSidebarOpen(true)}
+            className="flex md:hidden items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 rounded-lg text-xs font-bold transition-colors border border-emerald-200"
+          >
+            <Menu className="w-4 h-4 text-emerald-600" />
+            <span>Struktur</span>
+          </button>
+
+          <div className="flex items-center gap-2 text-xs md:text-sm">
+            <span className="font-extrabold text-slate-900 max-w-[140px] sm:max-w-[280px] md:max-w-xs truncate" title={thesisData?.research.title || 'Analisis Penelitian'}>
+              {thesisData?.research.title || 'Judul Penelitian'}
+            </span>
+            <span className="text-slate-300">/</span>
+            <span className="text-emerald-800 font-extrabold bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200 whitespace-nowrap">
+              {activeDoc.title}
+            </span>
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
-          <div className="text-xs text-slate-500 flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
+          {/* AI Refresh Chapter Button */}
+          <button 
+            onClick={handleRegenerateChapter}
+            disabled={isRegeneratingSection}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs disabled:opacity-50"
+            title="Generate ulang bab ini sesuai dengan data & panduan AI"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRegeneratingSection ? 'animate-spin' : ''}`} />
+            <span>{isRegeneratingSection ? 'Generating...' : 'Refresh Bab Ini'}</span>
+          </button>
+
+          <div className="text-xs text-slate-500 hidden md:flex items-center gap-1.5 ml-1">
             {isSaving ? (
               <><div className="w-3 h-3 border-2 border-slate-300 border-t-emerald-500 rounded-full animate-spin"></div> Menyimpan...</>
             ) : (
@@ -190,48 +369,170 @@ export default function EditorPage() {
           </div>
           <button 
             onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${rightSidebarOpen ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-colors ${rightSidebarOpen ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
           >
-            <Wand2 className="w-4 h-4" /> AI Asisten
+            <Wand2 className="w-4 h-4 text-emerald-600" /> AI Asisten
           </button>
         </div>
       </header>
 
+      {/* Guidelines & Author Context Banner */}
+      {thesisData && (
+        <div className="bg-slate-900 text-slate-200 px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-xs border-b border-slate-800 shrink-0">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span className="flex items-center gap-1.5 text-emerald-400 font-extrabold">
+              <GraduationCap className="w-4 h-4" /> {thesisData.university.name} ({thesisData.documentType})
+            </span>
+            <span className="text-slate-600">|</span>
+            <span className="flex items-center gap-1 text-slate-300">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Format Panduan: <strong className="text-white">{thesisData.guideline.font} ({thesisData.guideline.spacing})</strong>
+            </span>
+            <span className="text-slate-600 hidden lg:inline">|</span>
+            <span className="text-slate-400 hidden lg:inline">
+              Margin: Top/Left {thesisData.guideline.margins?.top || '4cm'}, Bottom/Right {thesisData.guideline.margins?.bottom || '3cm'}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] text-slate-300">
+            <span>Penulis: <strong className="text-white">{thesisData.author.name || 'Mahasiswa'}</strong> ({thesisData.author.nim || 'NIM'})</span>
+            {thesisData.author.supervisor && (
+              <span className="hidden xl:inline">• Pembimbing: {thesisData.author.supervisor}</span>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-1 overflow-hidden relative">
         
-        {/* Left Sidebar (Document List) */}
+        {/* Left Sidebar (Document List - Desktop) */}
         <AnimatePresence initial={false}>
           {leftSidebarOpen && (
             <motion.aside
               initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 240, opacity: 1 }}
+              animate={{ width: 280, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="border-r border-slate-200 bg-slate-50 shrink-0 overflow-y-auto hidden md:block"
             >
-              <div className="p-4 w-60">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Struktur Dokumen</h3>
-                <div className="space-y-1">
-                  {DOCUMENTS.map((doc) => (
-                    <button 
-                      key={doc.id}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-left transition-colors ${doc.active ? 'bg-emerald-100 text-emerald-800 font-semibold' : 'text-slate-600 hover:bg-slate-200'}`}
-                    >
-                      <FileText className={`w-4 h-4 ${doc.active ? 'text-emerald-600' : 'text-slate-400'}`} />
-                      <span className="truncate">{doc.title}</span>
-                    </button>
-                  ))}
+              <div className="p-4 w-[280px]">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                    <BookOpen className="w-4 h-4 text-emerald-600" /> Struktur Dokumen
+                  </h3>
+                  <span className="text-[10px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full">
+                    7 Bagian
+                  </span>
+                </div>
+                
+                <div className="space-y-1.5">
+                  {DOCUMENTS.map((doc) => {
+                    const isSelected = doc.id === activeDocId;
+                    return (
+                      <button 
+                        key={doc.id}
+                        onClick={() => handleSelectDoc(doc.id)}
+                        className={`w-full flex items-start gap-2.5 px-3 py-2.5 rounded-xl text-xs text-left transition-all ${
+                          isSelected 
+                            ? 'bg-emerald-600 text-white font-bold shadow-xs ring-2 ring-emerald-500/20' 
+                            : 'text-slate-700 hover:bg-slate-200/80 bg-white/60 border border-slate-200/60'
+                        }`}
+                      >
+                        <FileText className={`w-4 h-4 mt-0.5 shrink-0 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
+                        <span className="leading-snug break-words font-semibold">{doc.title}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </motion.aside>
           )}
         </AnimatePresence>
 
+        {/* Mobile Left Sidebar Drawer Overlay */}
+        <AnimatePresence>
+          {mobileSidebarOpen && (
+            <div className="fixed inset-0 z-50 md:hidden flex">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setMobileSidebarOpen(false)}
+                className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"
+              />
+              <motion.div 
+                initial={{ x: -280 }}
+                animate={{ x: 0 }}
+                exit={{ x: -280 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                className="relative bg-white w-72 max-w-[85vw] h-full shadow-2xl flex flex-col z-10"
+              >
+                <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                  <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-emerald-600" /> Struktur Dokumen Skripsi
+                  </h3>
+                  <button 
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="p-4 overflow-y-auto space-y-2 flex-1">
+                  {DOCUMENTS.map((doc) => {
+                    const isSelected = doc.id === activeDocId;
+                    return (
+                      <button 
+                        key={doc.id}
+                        onClick={() => handleSelectDoc(doc.id)}
+                        className={`w-full flex items-center justify-between p-3 rounded-xl text-xs text-left transition-all ${
+                          isSelected 
+                            ? 'bg-emerald-600 text-white font-extrabold shadow-sm' 
+                            : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <FileText className={`w-4 h-4 shrink-0 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
+                          <span className="font-bold">{doc.title}</span>
+                        </div>
+                        {isSelected && <Check className="w-4 h-4 shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
         {/* Main Editor Area */}
         <main className="flex-1 flex flex-col min-w-0 bg-slate-100/50 relative">
           
-          {/* Toolbar */}
-          <div className="h-12 bg-white border-b border-slate-200 flex items-center px-4 gap-2 shrink-0 overflow-x-auto custom-scrollbar">
+          {/* Chapter Navigation Pill Bar (Scrollable Horizontal Pills) */}
+          <div className="bg-slate-50 border-b border-slate-200 px-3 py-2 flex items-center gap-2 overflow-x-auto custom-scrollbar shrink-0">
+            <span className="text-[11px] font-extrabold uppercase text-slate-500 whitespace-nowrap flex items-center gap-1.5 shrink-0 mr-1">
+              <Layers className="w-3.5 h-3.5 text-emerald-600" /> Navigasi Bab:
+            </span>
+            {DOCUMENTS.map((doc) => {
+              const isSelected = doc.id === activeDocId;
+              return (
+                <button
+                  key={doc.id}
+                  type="button"
+                  onClick={() => handleSelectDoc(doc.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 ${
+                    isSelected
+                      ? 'bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-500/20 font-extrabold'
+                      : 'bg-white hover:bg-slate-200/80 text-slate-700 border border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <FileText className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
+                  {doc.title}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Formatting Toolbar */}
+          <div className="h-11 bg-white border-b border-slate-200 flex items-center px-4 gap-2 shrink-0 overflow-x-auto custom-scrollbar">
             <button className="p-1.5 rounded text-slate-700 hover:bg-slate-100"><Bold className="w-4 h-4" /></button>
             <button className="p-1.5 rounded text-slate-700 hover:bg-slate-100"><Italic className="w-4 h-4" /></button>
             <button className="p-1.5 rounded text-slate-700 hover:bg-slate-100"><Underline className="w-4 h-4" /></button>
@@ -255,7 +556,7 @@ export default function EditorPage() {
               <textarea 
                 ref={editorRef}
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={handleContentChange}
                 onMouseUp={handleMouseUp}
                 onKeyUp={handleSelectText}
                 className="w-full h-full min-h-[500px] resize-none outline-none text-slate-800 leading-loose text-justify text-[15px]"

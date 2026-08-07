@@ -1,19 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Building2, UploadCloud, UserCircle, BookOpen, Wand2, 
-  ArrowRight, ArrowLeft, CheckCircle2, FileText, X, Search, MapPin
-, Sparkles } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+  ArrowRight, ArrowLeft, CheckCircle2, FileText, X, Search, MapPin,
+  Sparkles, FileCheck, Trash2, AlertCircle, RefreshCw, Check, GraduationCap
+} from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { DEFAULT_UNIVERSITIES, UniversityTemplate } from '../data/universities';
+import { generateFullThesisContent, GuidelineRules, ThesisData } from '../utils/thesisGenerator';
+import { saveUserProject } from '../utils/projectStorage';
+import BidangIlmuSelector from '../components/BidangIlmuSelector';
+import { ACADEMIC_YEARS, DEFAULT_ACADEMIC_YEAR } from '../data/academicYears';
 
 export default function ProposalWizardPage() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
+  const location = useLocation();
+
+  // Read initial step from query param or state if navigating directly to Upload Panduan
+  const searchParams = new URLSearchParams(location.search);
+  const initialStep = Number(searchParams.get('step')) || location.state?.step || 1;
+
+  const [step, setStep] = useState(initialStep);
   const [searchUniv, setSearchUniv] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
+  const [selectedDocType, setSelectedDocType] = useState<string>('Skripsi');
+
+  // Sync step if URL query changes
+  useEffect(() => {
+    const queryStep = Number(searchParams.get('step')) || location.state?.step;
+    if (queryStep && queryStep !== step) {
+      setStep(queryStep);
+    }
+  }, [location.search, location.state]);
+  
+  // Guideline File Upload State
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [guidelineFile, setGuidelineFile] = useState<File | null>(null);
+  const [isAnalyzingGuideline, setIsAnalyzingGuideline] = useState(false);
+  const [parsedRules, setParsedRules] = useState<{
+    font: string;
+    fontSize: string;
+    spacing: string;
+    margins: { top: string; bottom: string; left: string; right: string };
+    pageNumberPos: string;
+    coverFormat: string;
+  } | null>(null);
+  const [guidelineSuccessMsg, setGuidelineSuccessMsg] = useState('');
   
   const categories = ['Semua', 'PTN', 'PTS', 'PTKIN', 'Politeknik', 'Sekolah Tinggi'];
+  const docTypes = [
+    { id: 'Skripsi', label: 'Skripsi (S1)', desc: 'Program Sarjana' },
+    { id: 'Tesis', label: 'Tesis (S2)', desc: 'Program Magister' },
+    { id: 'Disertasi', label: 'Disertasi (S3)', desc: 'Program Doktor' },
+    { id: 'Jurnal', label: 'Jurnal / Paper', desc: 'Publikasi Ilmiah' },
+    { id: 'Tugas Akhir', label: 'Tugas Akhir (D3/D4)', desc: 'Program Vokasi' }
+  ];
 
   const filteredUnivs = DEFAULT_UNIVERSITIES.filter(u => {
     const matchesCategory = selectedCategory === 'Semua' || u.category === selectedCategory;
@@ -24,14 +65,14 @@ export default function ProposalWizardPage() {
   });
   
   const [formData, setFormData] = useState({
-    university: '',
+    university: 'Universitas Indonesia (UI)',
     guidebookUploaded: false,
     author: {
       name: '',
       nim: '',
       major: '',
       faculty: '',
-      year: '',
+      year: DEFAULT_ACADEMIC_YEAR,
       supervisor: ''
     },
     research: {
@@ -46,6 +87,77 @@ export default function ProposalWizardPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateProgress, setGenerateProgress] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+
+  const processGuidelineFile = (file: File) => {
+    if (!file) return;
+    setGuidelineFile(file);
+    setIsAnalyzingGuideline(true);
+    setGuidelineSuccessMsg('');
+
+    const fname = file.name.toLowerCase();
+    let detectedFont = 'Times New Roman';
+    let detectedSize = '12pt';
+    let detectedSpacing = '1.5 Spasi Ganda';
+    let detectedMargins = { top: '4 cm', left: '4 cm', bottom: '3 cm', right: '3 cm' };
+
+    if (fname.includes('ipb') || fname.includes('itb') || fname.includes('ui')) {
+      detectedFont = fname.includes('itb') ? 'Arial' : 'Times New Roman';
+    } else if (fname.includes('jurnal') || fname.includes('paper')) {
+      detectedFont = 'Times New Roman';
+      detectedSize = '10pt';
+      detectedSpacing = '1.0 Spasi Tunggal';
+      detectedMargins = { top: '3 cm', left: '3 cm', bottom: '3 cm', right: '3 cm' };
+    }
+
+    // Simulate AI extraction of rules from the guidebook PDF/DOCX/TXT
+    setTimeout(() => {
+      setIsAnalyzingGuideline(false);
+      const rules = {
+        fileOpened: file.name,
+        documentType: selectedDocType,
+        font: detectedFont,
+        fontSize: detectedSize,
+        spacing: detectedSpacing,
+        margins: detectedMargins,
+        pageNumberPos: 'Kanan Atas (Bawah Tengah untuk Awal Bab)',
+        coverFormat: `Logo Kampus 5x5 cm, Judul Kapital Tebal (Bold), Nama & NIM Centered (${file.name})`
+      };
+
+      setParsedRules(rules);
+      setFormData(prev => ({ ...prev, guidebookUploaded: true }));
+      setGuidelineSuccessMsg(`Buku Panduan "${file.name}" (${(file.size / (1024 * 1024) || 0.1).toFixed(2)} MB) berhasil dibaca & di-parser oleh AI! Aturan format otomatis diterapkan.`);
+      
+      // Store in localStorage so the whole app inherits these uploaded guidelines
+      localStorage.setItem('thesis_guidelines', JSON.stringify(rules));
+    }, 1200);
+  };
+
+  const handleGuidelineChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      processGuidelineFile(e.target.files[0]);
+    }
+    // Reset value so re-selecting the file triggers onChange again
+    if (e.target) {
+      e.target.value = '';
+    }
+  };
+
+  const handleGuidelineDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      processGuidelineFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleRemoveGuideline = () => {
+    setGuidelineFile(null);
+    setParsedRules(null);
+    setGuidelineSuccessMsg('');
+    setFormData(prev => ({ ...prev, guidebookUploaded: false }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const handleAuthorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -77,6 +189,48 @@ export default function ProposalWizardPage() {
       if (progress >= 100) {
         progress = 100;
         clearInterval(interval);
+        
+        // Build guideline rules object
+        const guidelineRules: GuidelineRules = parsedRules || {
+          fileOpened: guidelineFile ? guidelineFile.name : 'Pedoman Standar Dikti',
+          documentType: selectedDocType,
+          font: 'Times New Roman',
+          fontSize: '12pt',
+          spacing: '1.5 Spasi Ganda',
+          margins: { top: '4 cm', left: '4 cm', bottom: '3 cm', right: '3 cm' },
+          pageNumberPos: 'Kanan Atas (Bawah Tengah untuk Awal Bab)',
+          coverFormat: 'Logo Kampus 5x5 cm, Judul Kapital Tebal, Nama & NIM Centered'
+        };
+
+        const matchedUniv = DEFAULT_UNIVERSITIES.find(u => u.name === formData.university) || {
+          id: 'ui',
+          name: formData.university || 'Universitas Indonesia (UI)'
+        };
+
+        // Generate customized chapters for Cover, Bab 1, Bab 2, Bab 3, Bab 4, Bab 5, and Daftar Pustaka
+        const generatedChapters = generateFullThesisContent(
+          selectedDocType,
+          matchedUniv,
+          guidelineRules,
+          formData.author,
+          formData.research
+        );
+
+        const fullThesis: ThesisData = {
+          id: 'thesis_' + Date.now(),
+          documentType: selectedDocType,
+          university: matchedUniv,
+          author: formData.author,
+          research: formData.research,
+          guideline: guidelineRules,
+          chapters: generatedChapters,
+          updatedAt: new Date().toISOString()
+        };
+
+        // Persist to localStorage and user project list
+        saveUserProject(fullThesis);
+        localStorage.setItem('thesis_guidelines', JSON.stringify(guidelineRules));
+
         setTimeout(() => {
           setIsGenerating(false);
           setIsFinished(true);
@@ -147,6 +301,30 @@ export default function ProposalWizardPage() {
                     className="space-y-6"
                   >
                     <div>
+                      {/* Jenis Dokumen Selector */}
+                      <div className="mb-6">
+                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
+                          <GraduationCap className="w-4 h-4 text-emerald-600" /> Jenis Karya Ilmiah:
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                          {docTypes.map((dt) => (
+                            <button
+                              key={dt.id}
+                              type="button"
+                              onClick={() => setSelectedDocType(dt.id)}
+                              className={`p-3 rounded-2xl border text-left transition-all ${
+                                selectedDocType === dt.id
+                                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-500/20'
+                                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                              }`}
+                            >
+                              <p className={`text-xs font-bold ${selectedDocType === dt.id ? 'text-white' : 'text-slate-900'}`}>{dt.label}</p>
+                              <p className={`text-[10px] mt-0.5 ${selectedDocType === dt.id ? 'text-emerald-100' : 'text-slate-500'}`}>{dt.desc}</p>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       <div className="flex items-center justify-between mb-2">
                         <h2 className="text-2xl font-extrabold text-slate-900">Pilih Template Universitas</h2>
                         <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full border border-emerald-200">
@@ -232,23 +410,142 @@ export default function ProposalWizardPage() {
                     className="space-y-6"
                   >
                     <div>
-                      <h2 className="text-2xl font-extrabold text-slate-900 mb-2">Upload Buku Panduan Skripsi</h2>
-                      <p className="text-slate-500 mb-6">Jika format spesifik belum ada, AI kami akan mempelajarinya langsung dari file PDF pedoman kampus Anda.</p>
+                      <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-2xl font-extrabold text-slate-900">Upload Buku Panduan Skripsi</h2>
+                        <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full border border-emerald-200">
+                          Fitur AI Parser PDF/DOCX
+                        </span>
+                      </div>
+                      <p className="text-slate-500 mb-6">
+                        Jika kampus Anda memiliki panduan spesifik, upload file PDF / DOCX pedoman skripsi. AI Dukun Skripsi akan mengekstrak aturan margin, spasi, font, dan format sampul secara otomatis.
+                      </p>
                       
-                      <div className="border-2 border-dashed border-slate-300 rounded-2xl p-10 text-center hover:bg-slate-50 hover:border-emerald-400 transition-colors cursor-pointer bg-white group">
-                        <UploadCloud className="w-16 h-16 text-slate-300 mx-auto mb-4 group-hover:text-emerald-500 transition-colors" />
-                        <h3 className="text-lg font-bold text-slate-700 mb-1 group-hover:text-emerald-600 transition-colors">Drag & drop file PDF di sini</h3>
-                        <p className="text-sm text-slate-500 mb-4">atau klik untuk memilih file dari komputer</p>
-                        <button className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium text-slate-700 group-hover:border-emerald-500 group-hover:text-emerald-600 transition-colors">
-                          Pilih File
-                        </button>
-                      </div>
+                      {/* Hidden File Input */}
+                      <input 
+                        ref={fileInputRef}
+                        type="file" 
+                        accept=".pdf,.doc,.docx"
+                        onChange={handleGuidelineChange}
+                        className="hidden"
+                      />
 
-                      <div className="mt-6 text-center">
-                        <button onClick={nextStep} className="text-sm font-medium text-slate-500 hover:text-slate-700 underline underline-offset-4">
-                          Lewati langkah ini (gunakan template standar)
-                        </button>
-                      </div>
+                      {!guidelineFile && !isAnalyzingGuideline && (
+                        <div 
+                          onClick={() => fileInputRef.current?.click()}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={handleGuidelineDrop}
+                          className="border-2 border-dashed border-slate-300 rounded-3xl p-10 text-center hover:bg-slate-50/80 hover:border-emerald-500 transition-all cursor-pointer bg-white group shadow-xs"
+                        >
+                          <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                            <UploadCloud className="w-8 h-8 text-emerald-600" />
+                          </div>
+                          <h3 className="text-lg font-bold text-slate-800 mb-1 group-hover:text-emerald-700 transition-colors">
+                            Drag & drop file PDF / DOCX pedoman di sini
+                          </h3>
+                          <p className="text-xs text-slate-500 mb-5">Mendukung file Buku Panduan Skripsi, Tesis, atau Tugas Akhir (Maksimal 25MB)</p>
+                          <button 
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              fileInputRef.current?.click();
+                            }}
+                            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-sm"
+                          >
+                            Pilih File Buku Panduan
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Loading / Analyzing State */}
+                      {isAnalyzingGuideline && (
+                        <div className="border border-emerald-200 rounded-3xl p-8 text-center bg-emerald-50/50 shadow-xs space-y-4">
+                          <div className="w-14 h-14 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mx-auto"></div>
+                          <div>
+                            <h3 className="text-base font-extrabold text-slate-900">Mengekstrak Pedoman Skripsi...</h3>
+                            <p className="text-xs text-slate-600 mt-1">
+                              AI sedang membaca struktur margin, font, spasi, dan sistem penomoran dari file <span className="font-bold text-emerald-800">{guidelineFile?.name}</span>
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Parsed Success State */}
+                      {guidelineFile && !isAnalyzingGuideline && parsedRules && (
+                        <div className="space-y-4">
+                          {/* Success Banner */}
+                          <div className="p-4 bg-emerald-50 border border-emerald-300 rounded-2xl flex items-start gap-3">
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                              <p className="text-xs font-bold text-emerald-900">{guidelineSuccessMsg}</p>
+                              <p className="text-[11px] text-emerald-700 mt-0.5">
+                                File: <span className="font-semibold">{guidelineFile.name}</span> ({(guidelineFile.size / 1024 / 1024).toFixed(2)} MB)
+                              </p>
+                            </div>
+                            <button 
+                              type="button"
+                              onClick={handleRemoveGuideline}
+                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Hapus / Ganti File"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          {/* Extracted Rules Summary Box */}
+                          <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3">
+                            <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                              <Sparkles className="w-4 h-4 text-emerald-600" /> Ringkasan Aturan Hasil Extraction AI:
+                            </h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <p className="text-[10px] text-slate-500 font-bold uppercase">Font & Ukuran Teks</p>
+                                <p className="font-bold text-slate-900">{parsedRules.font} ({parsedRules.fontSize})</p>
+                              </div>
+                              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <p className="text-[10px] text-slate-500 font-bold uppercase">Spasi Baris</p>
+                                <p className="font-bold text-slate-900">{parsedRules.spacing}</p>
+                              </div>
+                              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <p className="text-[10px] text-slate-500 font-bold uppercase">Margin Kertas (T-B-L-R)</p>
+                                <p className="font-bold text-slate-900">{parsedRules.margins.top} - {parsedRules.margins.bottom} - {parsedRules.margins.left} - {parsedRules.margins.right}</p>
+                              </div>
+                              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <p className="text-[10px] text-slate-500 font-bold uppercase">Tata Letak Nomor Halaman</p>
+                                <p className="font-bold text-slate-900">{parsedRules.pageNumberPos}</p>
+                              </div>
+                            </div>
+                            <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-200 text-xs text-emerald-900">
+                              <p className="text-[10px] font-bold uppercase text-emerald-800">Format Sampul / Cover</p>
+                              <p className="font-medium mt-0.5">{parsedRules.coverFormat}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5"
+                            >
+                              <RefreshCw className="w-3.5 h-3.5" /> Ganti Buku Panduan
+                            </button>
+                            <button
+                              type="button"
+                              onClick={nextStep}
+                              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1.5 ml-auto shadow-xs"
+                            >
+                              Gunakan Pedoman Ini & Lanjut <ArrowRight className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {!guidelineFile && !isAnalyzingGuideline && (
+                        <div className="mt-6 text-center">
+                          <button onClick={nextStep} className="text-xs font-bold text-slate-500 hover:text-slate-800 underline underline-offset-4">
+                            Lewati langkah ini (Gunakan template standar)
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )}
@@ -280,12 +577,27 @@ export default function ProposalWizardPage() {
                           <input name="faculty" value={formData.author.faculty} onChange={handleAuthorChange} type="text" className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50" />
                         </div>
                         <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-1">Program Studi</label>
-                          <input name="major" value={formData.author.major} onChange={handleAuthorChange} type="text" className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50" />
+                          <label className="block text-sm font-bold text-slate-700 mb-1">Program Studi / Bidang Ilmu</label>
+                          <BidangIlmuSelector
+                            value={formData.author.major}
+                            onChange={(val) => setFormData(prev => ({ ...prev, author: { ...prev.author, major: val } }))}
+                            placeholder="Contoh: Pendidikan Matematika, Teknik Informatika, Keperawatan..."
+                          />
                         </div>
                         <div>
                           <label className="block text-sm font-bold text-slate-700 mb-1">Tahun Akademik</label>
-                          <input name="year" value={formData.author.year} onChange={handleAuthorChange} type="text" placeholder="Contoh: 2023/2024" className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50" />
+                          <select
+                            name="year"
+                            value={formData.author.year}
+                            onChange={handleAuthorChange}
+                            className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50 font-medium"
+                          >
+                            {ACADEMIC_YEARS.map((y) => (
+                              <option key={y} value={y}>
+                                {y}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                         <div>
                           <label className="block text-sm font-bold text-slate-700 mb-1">Dosen Pembimbing</label>

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import BidangIlmuSelector from '../components/BidangIlmuSelector';
 
 const FIELDS_OF_STUDY = [
   'Manajemen Pemasaran',
@@ -48,7 +49,7 @@ export default function BrainstormingPage() {
   const [topic, setTopic] = useState('');
   const [keywordInput, setKeywordInput] = useState('');
   const [keywords, setKeywords] = useState<string[]>([]);
-  const [field, setField] = useState(FIELDS_OF_STUDY[0]);
+  const [field, setField] = useState('Teknik Informatika');
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestedTitle[]>([]);
@@ -279,14 +280,12 @@ export default function BrainstormingPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Bidang Studi</label>
-                  <select 
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Bidang Studi / Program Studi</label>
+                  <BidangIlmuSelector 
                     value={field}
-                    onChange={(e) => setField(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-amber-500 focus:border-amber-500 bg-white"
-                  >
-                    {FIELDS_OF_STUDY.map(f => <option key={f} value={f}>{f}</option>)}
-                  </select>
+                    onChange={(val) => setField(val)}
+                    placeholder="Contoh: Pendidikan Matematika, Teknik Informatika, keperawatan..."
+                  />
                 </div>
 
                 <button 
