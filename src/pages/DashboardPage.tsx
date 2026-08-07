@@ -1,11 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Wand2, LayoutDashboard, PlusCircle, FileText, Edit3, Sparkles, 
   Layers, Presentation, MessageSquare, Database, History, 
-  Settings, LogOut, Bell, Search, Menu, X, ChevronRight, Upload, PlayCircle, Lightbulb, BookOpen, Users
+  Settings, LogOut, Bell, Search, Menu, X, ChevronRight, Upload, PlayCircle, Lightbulb, BookOpen, Users, Clock, ShieldCheck
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { 
+  getCurrentUserAccess, isAccessValid, getRemainingTimeString, 
+  ADMIN_EMAIL, UserAccessInfo 
+} from '../utils/accessControl';
+import AccessExpiredModal from '../components/AccessExpiredModal';
+import AdminPanelModal from '../components/AdminPanelModal';
 
 const SIDEBAR_MENU = [
   { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', active: true },
@@ -19,9 +25,9 @@ const SIDEBAR_MENU = [
   { name: 'Citation Manager', icon: Layers, path: '/citation-manager' },
   { name: 'Presentasi', icon: Presentation, path: '/presentation/new' },
   { name: 'Simulasi Sidang', icon: MessageSquare, path: '/simulation' },
-  { name: 'Olah Data', icon: Database, path: '/dashboard' },
-  { name: 'Riwayat', icon: History, path: '/dashboard' },
-  { name: 'Pengaturan', icon: Settings, path: '/dashboard' },
+  { name: 'Olah Data', icon: Database, path: '/olah-data' },
+  { name: 'Riwayat', icon: History, path: '/riwayat' },
+  { name: 'Pengaturan', icon: Settings, path: '/pengaturan' },
 ];
 
 const RECENT_PROJECTS = [
@@ -31,11 +37,40 @@ const RECENT_PROJECTS = [
 
 export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const navigate = useNavigate();
 
+  const [userAccess, setUserAccess] = useState<UserAccessInfo>(() => getCurrentUserAccess());
+  const [remainingTime, setRemainingTime] = useState<string>(() => getRemainingTimeString(userAccess));
+  const [hasValidAccess, setHasValidAccess] = useState<boolean>(() => isAccessValid(userAccess));
+
+  // Timer interval to keep remaining time countdown fresh
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const current = getCurrentUserAccess();
+      setUserAccess(current);
+      setRemainingTime(getRemainingTimeString(current));
+      setHasValidAccess(isAccessValid(current));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const isAdmin = userAccess.role === 'admin' || userAccess.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
   return (
-    <div className="min-h-screen bg-slate-50 flex font-sans text-slate-800">
+    <div className="min-h-screen bg-slate-50 flex font-sans text-slate-800 relative">
       
+      {/* Access Expired Overlay for expired users */}
+      {!hasValidAccess && (
+        <AccessExpiredModal isOpen={!hasValidAccess} userEmail={userAccess.email} />
+      )}
+
+      {/* Admin Panel Modal */}
+      {isAdmin && (
+        <AdminPanelModal isOpen={isAdminModalOpen} onClose={() => setIsAdminModalOpen(false)} />
+      )}
+
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div 
@@ -71,18 +106,29 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        <div className="p-4 border-t border-slate-100">
-          <Link to="/login" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors mb-4">
-            <LogOut className="w-5 h-5 text-red-500" />
+        <div className="p-4 border-t border-slate-100 space-y-2">
+          {isAdmin && (
+            <button
+              onClick={() => setIsAdminModalOpen(true)}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow-xs transition-colors"
+            >
+              <ShieldCheck className="w-4 h-4 text-emerald-400" /> Kelola Akses User (Admin)
+            </button>
+          )}
+
+          <Link to="/login" className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-colors">
+            <LogOut className="w-4 h-4 text-red-500" />
             Logout
           </Link>
-          <div className="flex items-center gap-3 px-3 py-2 bg-slate-50 rounded-xl border border-slate-100">
-            <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold">
-              BS
+          <div className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+            <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm shrink-0">
+              {userAccess.name ? userAccess.name.substring(0, 2).toUpperCase() : 'UA'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-slate-900 truncate">Budi Santoso</p>
-              <p className="text-xs text-slate-500 truncate">Universitas Indonesia</p>
+              <div className="flex items-center gap-1">
+                <p className="text-xs font-bold text-slate-900 truncate">{userAccess.name}</p>
+              </div>
+              <p className="text-[10px] text-slate-500 truncate">{userAccess.email}</p>
             </div>
           </div>
         </div>
@@ -102,13 +148,21 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {isAdmin && (
+              <button
+                onClick={() => setIsAdminModalOpen(true)}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Panel Admin
+              </button>
+            )}
             <button className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors">
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
             </button>
-            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm sm:hidden">
-              BS
+            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs sm:hidden">
+              {userAccess.name ? userAccess.name.substring(0, 2).toUpperCase() : 'UA'}
             </div>
           </div>
         </header>
@@ -119,8 +173,25 @@ export default function DashboardPage() {
             
             {/* Greeting */}
             <div>
-              <h1 className="text-2xl font-extrabold text-slate-900">Halo, Budi! 👋</h1>
-              <p className="text-slate-500 mt-1">Siap untuk melanjutkan skripsimu hari ini?</p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h1 className="text-2xl font-extrabold text-slate-900">
+                    {isAdmin ? 'Halo, Febri (Admin Dukun Skripsi)! 👋' : `Halo, ${userAccess.name}! 👋`}
+                  </h1>
+                  <p className="text-slate-500 mt-1">Siap untuk melanjutkan skripsimu hari ini?</p>
+                </div>
+
+                {/* Trial Time Remaining Badge */}
+                {!isAdmin && (
+                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 text-xs font-bold shadow-xs">
+                    <Clock className="w-4 h-4 text-emerald-600 animate-pulse shrink-0" />
+                    <div>
+                      <span className="text-[10px] text-emerald-700 block uppercase font-extrabold">Akses Mulai Gratis 5 Jam</span>
+                      <span className="text-emerald-900 font-extrabold">{remainingTime}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Quick Actions */}

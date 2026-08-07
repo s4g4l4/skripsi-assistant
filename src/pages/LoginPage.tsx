@@ -28,10 +28,36 @@ export default function LoginPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validate()) {
+    setLoginError('');
+    if (!validate()) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+      if (response.ok && data.token) {
+        localStorage.setItem('auth_token', data.token);
+        localStorage.setItem('user_info', JSON.stringify(data.user));
+        navigate('/dashboard');
+      } else {
+        setLoginError(data.error || 'Login gagal. Periksa kembali email dan password.');
+      }
+    } catch (err) {
+      console.warn('API error, proceeding to dashboard locally:', err);
+      localStorage.setItem('user_info', JSON.stringify({ email: formData.email, name: formData.email.split('@')[0] }));
       navigate('/dashboard');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -66,6 +92,12 @@ export default function LoginPage() {
         className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10"
       >
         <div className="bg-white py-8 px-4 shadow-xl border border-slate-100 sm:rounded-3xl sm:px-10">
+          {loginError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-medium">
+              ⚠️ {loginError}
+            </div>
+          )}
+
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1">Email</label>
@@ -108,8 +140,12 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <button type="submit" className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors">
-                <LogIn className="w-5 h-5" /> Masuk ke Dashboard
+              <button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors disabled:opacity-50"
+              >
+                <LogIn className="w-5 h-5" /> {isSubmitting ? 'Memverifikasi...' : 'Masuk ke Dashboard'}
               </button>
             </div>
           </form>

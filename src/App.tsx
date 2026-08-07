@@ -13,6 +13,9 @@ import DefenseSimulationPage from './pages/DefenseSimulationPage';
 import BrainstormingPage from './pages/BrainstormingPage';
 import PdfChatPage from './pages/PdfChatPage';
 import CollaborationPage from './pages/CollaborationPage';
+import OlahDataPage from './pages/OlahDataPage';
+import HistoryPage from './pages/HistoryPage';
+import SettingsPage from './pages/SettingsPage';
 
 export default function App() {
   return (
@@ -31,6 +34,9 @@ export default function App() {
         <Route path="/brainstorming" element={<BrainstormingPage />} />
         <Route path="/pdf-chat" element={<PdfChatPage />} />
         <Route path="/collaboration" element={<CollaborationPage />} />
+        <Route path="/olah-data" element={<OlahDataPage />} />
+        <Route path="/riwayat" element={<HistoryPage />} />
+        <Route path="/pengaturan" element={<SettingsPage />} />
       </Routes>
     </BrowserRouter>
   );
