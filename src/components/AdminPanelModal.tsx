@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { 
   Users, Clock, ShieldCheck, ShieldAlert, X, PlusCircle, Ban, 
-  CheckCircle2, RefreshCw, Calendar, Key, MessageSquare
+  CheckCircle2, RefreshCw, Calendar, Key, MessageSquare, Trash2, Lock
 } from 'lucide-react';
 import { 
-  getStoredUsers, extendUserAccess, revokeUserAccess, UserAccessInfo, 
+  getStoredUsers, extendUserAccess, revokeUserAccess, deleteUserAccount, UserAccessInfo, 
   getRemainingTimeString, isAccessValid, ADMIN_EMAIL, ADMIN_WA_NUMBER 
 } from '../utils/accessControl';
 
@@ -53,6 +53,15 @@ export default function AdminPanelModal({ isOpen, onClose }: AdminPanelModalProp
       refreshUsers();
       setMessageNotification(`Akses user ${email} berhasil dibatalkan.`);
       setTimeout(() => setMessageNotification(''), 3000);
+    }
+  };
+
+  const handleDelete = (email: string) => {
+    if (confirm(`AKSI KHUSUS ADMIN:\nApakah Anda yakin ingin MENGHAPUS PERMANEN akun (${email})?\n\nAkun yang terhapus tidak akan bisa masuk lagi kecuali mendaftar ulang.`)) {
+      deleteUserAccount(email);
+      refreshUsers();
+      setMessageNotification(`Akun ${email} telah berhasil dihapus dari database oleh Admin.`);
+      setTimeout(() => setMessageNotification(''), 3500);
     }
   };
 
@@ -160,16 +169,38 @@ export default function AdminPanelModal({ isOpen, onClose }: AdminPanelModalProp
                         {/* Revoke Button */}
                         <button
                           onClick={() => handleRevoke(u.email)}
-                          className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs rounded-xl border border-red-200 transition-colors flex items-center gap-1"
+                          className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs rounded-xl border border-amber-200 transition-colors flex items-center gap-1"
                           title="Batalkan Akses User"
                         >
                           <Ban className="w-3.5 h-3.5" /> Batalkan
+                        </button>
+
+                        {/* Delete Account Button (Admin Only) */}
+                        <button
+                          onClick={() => handleDelete(u.email)}
+                          className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1 shadow-xs"
+                          title="Hapus Akun Permanen (Khusus Admin)"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Hapus Akun
                         </button>
                       </div>
                     )}
                   </div>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Account Protection Policy Banner */}
+          <div className="p-3.5 bg-slate-900 text-white rounded-2xl text-xs flex items-center gap-3 border border-slate-800">
+            <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-extrabold text-slate-100">🔒 Perlindungan Data Pendaftar (Proteksi Perbaikan)</p>
+              <p className="text-[11px] text-slate-300 mt-0.5">
+                Seluruh data akun pendaftar tersimpan secara permanen di penyimpanan aplikasi. Pembaruan/perbaikan sistem <strong>TIDAK AKAN menghapus akun terdaftar</strong>. Hanya Admin yang dapat menghapus akun secara manual melalui tombol "Hapus Akun" di atas.
+              </p>
             </div>
           </div>
 

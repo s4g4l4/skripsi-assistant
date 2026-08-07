@@ -228,3 +228,25 @@ export function revokeUserAccess(userEmail: string) {
     localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(allUsers[userIndex]));
   }
 }
+
+export function deleteUserAccount(userEmail: string) {
+  const allUsers = getStoredUsers();
+  if (userEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+    return; // Admin account cannot be deleted
+  }
+  const filtered = allUsers.filter(u => u.email.toLowerCase() !== userEmail.toLowerCase());
+  saveStoredUsers(filtered);
+
+  // If deleted user is currently logged in, clear user session
+  try {
+    const raw = localStorage.getItem(CURRENT_USER_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.email?.toLowerCase() === userEmail.toLowerCase()) {
+        localStorage.removeItem(CURRENT_USER_KEY);
+      }
+    }
+  } catch (e) {
+    console.error('Error clearing deleted user session:', e);
+  }
+}
