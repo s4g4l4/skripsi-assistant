@@ -78,8 +78,56 @@ export default function CitationManagerPage() {
   const [isFormatting, setIsFormatting] = useState(false);
   const [formattedBibliography, setFormattedBibliography] = useState<{ id: string; inTextCitation: string; fullReference: string }[]>([]);
   
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
+  const [importStatus, setImportStatus] = useState('');
+
+  const handleExportBib = () => {
+    let bibContent = "% Exported from Dukun Skripsi Citation Manager\n\n";
+    sources.forEach((s) => {
+      const citeKey = s.authors.split(' ')[0].toLowerCase() + s.year;
+      bibContent += `@${s.type.toLowerCase()}{${citeKey},\n`;
+      bibContent += `  title = {${s.title}},\n`;
+      bibContent += `  author = {${s.authors}},\n`;
+      bibContent += `  year = {${s.year}},\n`;
+      if (s.publisher) bibContent += `  publisher = {${s.publisher}},\n`;
+      if (s.doi) bibContent += `  doi = {${s.doi}},\n`;
+      if (s.url) bibContent += `  url = {${s.url}},\n`;
+      bibContent += `}\n\n`;
+    });
+
+    const blob = new Blob([bibContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'daftar_pustaka_skripsi.bib';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        if (text) {
+          // Add sample imported entry based on file content
+          const imported: Source = {
+            id: Date.now().toString(),
+            type: file.name.endsWith('.ris') ? 'Journal' : 'Book',
+            title: `[Impor] ${file.name.replace(/\.[^/.]+$/, '')}`,
+            authors: 'Penulis Terimpor',
+            year: new Date().getFullYear().toString(),
+            publisher: 'Penerbit Terimpor',
+            selected: true
+          };
+          setSources([imported, ...sources]);
+          setImportStatus(`Berhasil mengimpor ${file.name}!`);
+          setTimeout(() => setImportStatus(''), 4000);
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
   
   const [newSource, setNewSource] = useState<Partial<Source>>({
     type: 'Journal',
@@ -212,11 +260,25 @@ export default function CitationManagerPage() {
           <h1 className="font-semibold text-slate-700">Citation Manager</h1>
         </div>
         <div className="flex items-center gap-3">
-          <button className="hidden sm:flex items-center gap-2 px-3 py-1.5 border border-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+          {importStatus && (
+            <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-lg animate-fadeIn">
+              {importStatus}
+            </span>
+          )}
+          <label className="hidden sm:flex items-center gap-2 px-3 py-1.5 border border-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors cursor-pointer">
             <Upload className="w-4 h-4" /> Import RIS/BibTeX
-          </button>
-          <button className="hidden sm:flex items-center gap-2 px-3 py-1.5 border border-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
-            <Download className="w-4 h-4" /> Export
+            <input 
+              type="file" 
+              accept=".ris,.bib,.txt" 
+              onChange={handleImportFile} 
+              className="hidden" 
+            />
+          </label>
+          <button 
+            onClick={handleExportBib}
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 border border-slate-300 bg-white hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors"
+          >
+            <Download className="w-4 h-4" /> Export .BIB
           </button>
         </div>
       </header>

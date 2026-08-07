@@ -296,7 +296,7 @@ export default function AutoFormatPage() {
                         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                           <Settings className="w-4 h-4 text-emerald-500" /> Konfigurasi Format
                         </h3>
-                        {selectedUniv !== 'Deteksi Otomatis (AI)' && (
+                        {selectedUnivObj.name !== 'Deteksi Otomatis (AI)' && (
                           <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded">Diisi otomatis oleh template</span>
                         )}
                       </div>
@@ -399,7 +399,7 @@ export default function AutoFormatPage() {
                         </div>
                         <div>
                           <h2 className="text-2xl font-extrabold text-slate-900 mb-2">Format Selesai!</h2>
-                          <p className="text-slate-500">Dokumen Anda telah berhasil dirapikan sesuai template <strong>{selectedUniv}</strong>.</p>
+                          <p className="text-slate-500">Dokumen Anda telah berhasil dirapikan sesuai template <strong>{selectedUnivObj.name}</strong>.</p>
                         </div>
                         
                         <div className="flex flex-col sm:flex-row justify-center gap-4">

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { 
   Settings, User, ShieldCheck, Key, ArrowLeft, Save, 
-  Check, Sparkles, Award, Sliders, Bell, Laptop, GraduationCap
+  Check, Sparkles, Award, Sliders, Bell, Laptop, GraduationCap,
+  ExternalLink, Cpu, Globe, Bot
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import BidangIlmuSelector from '../components/BidangIlmuSelector';
@@ -33,7 +34,31 @@ export default function SettingsPage() {
   });
 
   const [savedSuccess, setSavedSuccess] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'security'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'apikeys' | 'security'>('profile');
+
+  // Custom API Keys & Multi-Engine Choice
+  const [customApiKeys, setCustomApiKeys] = useState(() => {
+    try {
+      const saved = localStorage.getItem('custom_api_keys');
+      return saved ? JSON.parse(saved) : {
+        selectedEngine: 'multi_synergy',
+        groqApiKey: '',
+        deepseekApiKey: '',
+        prismApiKey: '',
+        gkswriteApiKey: '',
+        geminiApiKey: ''
+      };
+    } catch (e) {
+      return { 
+        selectedEngine: 'multi_synergy',
+        groqApiKey: '', 
+        deepseekApiKey: '', 
+        prismApiKey: '',
+        gkswriteApiKey: '',
+        geminiApiKey: '' 
+      };
+    }
+  });
 
   // Preferences State
   const [citationFormat, setCitationFormat] = useState('APA 7th Edition');
@@ -112,6 +137,15 @@ export default function SettingsPage() {
               }`}
             >
               <Sliders className="w-4 h-4 text-emerald-600" /> Preferensi Format AI
+            </button>
+
+            <button
+              onClick={() => setActiveTab('apikeys')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-colors ${
+                activeTab === 'apikeys' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <Key className="w-4 h-4 text-emerald-600" /> API Keys Custom (Groq / DeepSeek)
             </button>
 
             <button
@@ -239,6 +273,180 @@ export default function SettingsPage() {
               <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900">
                 <p className="font-bold mb-0.5">⚡ Mode Dukun Skripsi High Precision</p>
                 <p className="text-[11px] text-emerald-800">AI dioptimalkan untuk meminimalkan halusinasi kutipan dan menjaga kaidah penulisan ilmiah Indonesia.</p>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'apikeys' && (
+            <div className="space-y-5">
+              <div className="border-b border-slate-100 pb-3">
+                <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                  <Key className="w-4 h-4 text-emerald-600" /> Multi-Engine AI Integration & Custom API Keys
+                </h2>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Pilih model AI utama atau gunakan sinergi gabungan (Multi-Engine Synergy). Anda dapat mengambil API Key gratis dari masing-masing provider melalui tautan resmi di bawah ini.
+                </p>
+              </div>
+
+              {/* Mode Selection */}
+              <div className="p-3.5 bg-slate-900 text-white rounded-2xl space-y-2">
+                <label className="block text-xs font-extrabold text-emerald-400 flex items-center gap-1.5">
+                  <Cpu className="w-4 h-4 text-emerald-400 animate-pulse" /> Modus Operasi Engine AI
+                </label>
+                <select
+                  value={customApiKeys.selectedEngine || 'multi_synergy'}
+                  onChange={(e) => setCustomApiKeys({ ...customApiKeys, selectedEngine: e.target.value })}
+                  className="w-full px-3 py-2 text-xs bg-slate-800 border border-slate-700 text-white font-bold rounded-xl outline-none focus:ring-2 focus:ring-emerald-400"
+                >
+                  <option value="multi_synergy">✨ Synergy Multi-AI (Gunakan Semua Engine Sesuai Spesialisasi)</option>
+                  <option value="groq">⚡ Groq Cloud (Llama-3 / Mixtral - Ultra Fast)</option>
+                  <option value="deepseek">🧠 DeepSeek-R1 / V3 (Deep Reasoning & Analysis)</option>
+                  <option value="prism">🔮 Prism by OpenAI (GPT-4o Academic Writer)</option>
+                  <option value="gkswrite">✒️ GKS-Write (Baku Dikti & Grammar Synthesis)</option>
+                  <option value="gemini">♊ Google Gemini 2.5 Flash (Standard Bawaan Sistem)</option>
+                </select>
+                <p className="text-[11px] text-slate-300 leading-tight pt-1">
+                  *Dengan pilihan <strong>Synergy Multi-AI</strong>, sistem secara otomatis mengombinasikan kekuatan tata bahasa GKS-Write, kecerdasan DeepSeek, sintesis Prism, kecepatan Groq, dan presisi Gemini.
+                </p>
+              </div>
+
+              {/* API Key Form Fields & Links */}
+              <div className="space-y-4 pt-1">
+
+                {/* 1. Groq Cloud */}
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                    <span className="flex items-center gap-1.5">⚡ Groq Cloud API Key</span>
+                    <a 
+                      href="https://console.groq.com/keys" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-emerald-600 hover:text-emerald-700 hover:underline font-extrabold flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200"
+                    >
+                      Dapatkan Key Groq <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <input
+                    type="password"
+                    value={customApiKeys.groqApiKey || ''}
+                    onChange={(e) => setCustomApiKeys({ ...customApiKeys, groqApiKey: e.target.value })}
+                    placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg font-mono outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <p className="text-[10px] text-slate-500">URL Resmi: <code className="text-slate-700 font-mono">https://console.groq.com/keys</code></p>
+                </div>
+
+                {/* 2. DeepSeek AI */}
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                    <span className="flex items-center gap-1.5">🧠 DeepSeek AI API Key</span>
+                    <a 
+                      href="https://platform.deepseek.com/api_keys" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-indigo-600 hover:text-indigo-700 hover:underline font-extrabold flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-200"
+                    >
+                      Dapatkan Key DeepSeek <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <input
+                    type="password"
+                    value={customApiKeys.deepseekApiKey || ''}
+                    onChange={(e) => setCustomApiKeys({ ...customApiKeys, deepseekApiKey: e.target.value })}
+                    placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg font-mono outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <p className="text-[10px] text-slate-500">URL Resmi: <code className="text-slate-700 font-mono">https://platform.deepseek.com/api_keys</code></p>
+                </div>
+
+                {/* 3. Prism by OpenAI */}
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                    <span className="flex items-center gap-1.5">🔮 Prism / OpenAI API Key</span>
+                    <a 
+                      href="https://platform.openai.com/api-keys" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-purple-600 hover:text-purple-700 hover:underline font-extrabold flex items-center gap-1 bg-purple-50 px-2 py-0.5 rounded-lg border border-purple-200"
+                    >
+                      Dapatkan Key Prism/OpenAI <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <input
+                    type="password"
+                    value={customApiKeys.prismApiKey || ''}
+                    onChange={(e) => setCustomApiKeys({ ...customApiKeys, prismApiKey: e.target.value })}
+                    placeholder="sk-proj-xxxxxxxxxxxxxxxxxxxxxxxx"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg font-mono outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <p className="text-[10px] text-slate-500">URL Resmi: <code className="text-slate-700 font-mono">https://platform.openai.com/api-keys</code></p>
+                </div>
+
+                {/* 4. GKS-Write */}
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                    <span className="flex items-center gap-1.5">✒️ GKS-Write Academic Key</span>
+                    <a 
+                      href="https://gkswrite.com/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-teal-600 hover:text-teal-700 hover:underline font-extrabold flex items-center gap-1 bg-teal-50 px-2 py-0.5 rounded-lg border border-teal-200"
+                    >
+                      Buka GKS-Write <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <input
+                    type="password"
+                    value={customApiKeys.gkswriteApiKey || ''}
+                    onChange={(e) => setCustomApiKeys({ ...customApiKeys, gkswriteApiKey: e.target.value })}
+                    placeholder="gks_key_xxxxxxxxxxxxxxxx"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg font-mono outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <p className="text-[10px] text-slate-500">URL Resmi: <code className="text-slate-700 font-mono">https://gkswrite.com/</code></p>
+                </div>
+
+                {/* 5. Google Gemini AI */}
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                    <span className="flex items-center gap-1.5">♊ Google Gemini API Key</span>
+                    <a 
+                      href="https://aistudio.google.com/app/apikey" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-emerald-600 hover:text-emerald-700 hover:underline font-extrabold flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200"
+                    >
+                      Dapatkan Key Gemini <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <input
+                    type="password"
+                    value={customApiKeys.geminiApiKey || ''}
+                    onChange={(e) => setCustomApiKeys({ ...customApiKeys, geminiApiKey: e.target.value })}
+                    placeholder="AIzaSyxxxxxxxxxxxxxxxxxxxxxxxx"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg font-mono outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <p className="text-[10px] text-slate-500">URL Resmi: <code className="text-slate-700 font-mono">https://aistudio.google.com/app/apikey</code></p>
+                </div>
+
+              </div>
+
+              <div className="pt-2 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.setItem('custom_api_keys', JSON.stringify(customApiKeys));
+                    setSavedSuccess(true);
+                    setTimeout(() => setSavedSuccess(false), 2500);
+                  }}
+                  className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs rounded-xl transition-colors shadow-xs flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" /> Simpan Pengaturan & API Keys
+                </button>
+                {savedSuccess && (
+                  <span className="text-xs font-bold text-emerald-600 flex items-center gap-1 animate-fadeIn">
+                    <Check className="w-4 h-4" /> Berhasil Tersimpan!
+                  </span>
+                )}
               </div>
             </div>
           )}

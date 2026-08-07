@@ -64,8 +64,10 @@ export default function ProposalWizardPage() {
     return matchesCategory && matchesSearch;
   });
   
+  const [validationError, setValidationError] = useState<string>('');
+
   const [formData, setFormData] = useState({
-    university: 'Universitas Indonesia (UI)',
+    university: '',
     guidebookUploaded: false,
     author: {
       name: '',
@@ -84,6 +86,27 @@ export default function ProposalWizardPage() {
     }
   });
 
+  // Automatically pre-fill author name from access info if available
+  useEffect(() => {
+    try {
+      const user = localStorage.getItem('user_access_info');
+      if (user) {
+        const parsed = JSON.parse(user);
+        if (parsed.name) {
+          setFormData(prev => ({
+            ...prev,
+            author: {
+              ...prev.author,
+              name: prev.author.name || parsed.name
+            }
+          }));
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateProgress, setGenerateProgress] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
@@ -93,6 +116,7 @@ export default function ProposalWizardPage() {
     setGuidelineFile(file);
     setIsAnalyzingGuideline(true);
     setGuidelineSuccessMsg('');
+    setValidationError('');
 
     const fname = file.name.toLowerCase();
     let detectedFont = 'Times New Roman';
@@ -136,7 +160,6 @@ export default function ProposalWizardPage() {
     if (e.target.files && e.target.files[0]) {
       processGuidelineFile(e.target.files[0]);
     }
-    // Reset value so re-selecting the file triggers onChange again
     if (e.target) {
       e.target.value = '';
     }
@@ -160,6 +183,7 @@ export default function ProposalWizardPage() {
   };
 
   const handleAuthorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValidationError('');
     setFormData({
       ...formData,
       author: { ...formData.author, [e.target.name]: e.target.value }
@@ -167,6 +191,7 @@ export default function ProposalWizardPage() {
   };
 
   const handleResearchChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    setValidationError('');
     setFormData({
       ...formData,
       research: { ...formData.research, [e.target.name]: e.target.value }
@@ -174,10 +199,37 @@ export default function ProposalWizardPage() {
   };
 
   const nextStep = () => {
+    setValidationError('');
+    // Step 1 Validation: Template Universitas (Wajib Di Pilih)
+    if (step === 1) {
+      if (!formData.university || formData.university.trim() === '') {
+        setValidationError('Pilih Template Universitas wajib Anda tentukan terlebih dahulu!');
+        return;
+      }
+    }
+
+    // Step 3 Validation: Data Penulis (Nama & NIM Wajib Diisi)
+    if (step === 3) {
+      if (!formData.author.name.trim() || !formData.author.nim.trim()) {
+        setValidationError('Data Penulis: Nama Lengkap dan NIM / NPM Wajib Diisi!');
+        return;
+      }
+    }
+
+    // Step 4 Validation: Detail Penelitian (Judul, Topik, Jenis, Populasi, Variabel Wajib Diisi)
+    if (step === 4) {
+      const { title, topic, type, population, variables } = formData.research;
+      if (!title.trim() || !topic.trim() || !type.trim() || !population.trim() || !variables.trim()) {
+        setValidationError('Detail Penelitian: Judul, Topik Utama, Jenis Penelitian, Populasi/Objek, dan Variabel Penelitian Wajib Diisi!');
+        return;
+      }
+    }
+
     if (step < 5) setStep(step + 1);
   };
 
   const prevStep = () => {
+    setValidationError('');
     if (step > 1) setStep(step - 1);
   };
 
@@ -290,6 +342,15 @@ export default function ProposalWizardPage() {
           {/* Form Area */}
           <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
             <div className="p-6 sm:p-10">
+              
+              {/* Validation Alert Box */}
+              {validationError && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-3 text-xs font-bold text-red-700 animate-fadeIn">
+                  <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                  <span>{validationError}</span>
+                </div>
+              )}
+
               <AnimatePresence mode="wait">
                 {step === 1 && (
                   <motion.div
@@ -326,13 +387,31 @@ export default function ProposalWizardPage() {
                       </div>
 
                       <div className="flex items-center justify-between mb-2">
-                        <h2 className="text-2xl font-extrabold text-slate-900">Pilih Template Universitas</h2>
-                        <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full border border-emerald-200">
+                        <h2 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+                          1. Pilih Template Universitas <span className="text-xs bg-red-100 text-red-700 font-extrabold px-2.5 py-0.5 rounded-full border border-red-200">Wajib Dipilih *</span>
+                        </h2>
+                        <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full border border-emerald-200 hidden sm:inline-block">
                           Data Kemendikdasmen / DIKTI
                         </span>
                       </div>
                       <p className="text-slate-500 mb-6">Sistem menyesuaikan margin, font, dan spasi otomatis berdasarkan pedoman resmi kampus Anda.</p>
                       
+                      {/* Selected Kampus Banner */}
+                      {formData.university ? (
+                        <div className="mb-4 p-3 bg-emerald-50 border border-emerald-300 rounded-2xl flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                            <span className="text-xs font-bold text-emerald-900">Kampus Terpilih: <strong>{formData.university}</strong></span>
+                          </div>
+                          <span className="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-md font-bold">Siap</span>
+                        </div>
+                      ) : (
+                        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-2 text-xs font-bold text-amber-800">
+                          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span>Silakan klik salah satu kampus dari daftar di bawah ini untuk melanjutkan.</span>
+                        </div>
+                      )}
+
                       {/* Category Pills */}
                       <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-4 custom-scrollbar">
                         {categories.map((cat) => (
@@ -372,7 +451,10 @@ export default function ProposalWizardPage() {
                           return (
                             <div 
                               key={univ.id}
-                              onClick={() => setFormData({ ...formData, university: univ.name })}
+                              onClick={() => {
+                                setFormData({ ...formData, university: univ.name });
+                                setValidationError('');
+                              }}
                               className={`p-3.5 rounded-xl cursor-pointer transition-all flex items-center justify-between my-0.5 ${
                                 isSelected 
                                   ? 'bg-emerald-50 border border-emerald-300 text-emerald-900 font-bold' 
@@ -411,7 +493,9 @@ export default function ProposalWizardPage() {
                   >
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <h2 className="text-2xl font-extrabold text-slate-900">Upload Buku Panduan Skripsi</h2>
+                        <h2 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+                          2. Upload Buku Panduan Skripsi <span className="text-xs bg-slate-100 text-slate-600 font-bold px-2.5 py-0.5 rounded-full border border-slate-200">Opsional</span>
+                        </h2>
                         <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full border border-emerald-200">
                           Fitur AI Parser PDF/DOCX
                         </span>
@@ -560,28 +644,53 @@ export default function ProposalWizardPage() {
                     className="space-y-6"
                   >
                     <div>
-                      <h2 className="text-2xl font-extrabold text-slate-900 mb-2">Data Penulis</h2>
+                      <h2 className="text-2xl font-extrabold text-slate-900 mb-2 flex items-center gap-2">
+                        2. Data Penulis <span className="text-xs bg-red-100 text-red-700 font-extrabold px-2.5 py-0.5 rounded-full border border-red-200">Wajib Diisi</span>
+                      </h2>
                       <p className="text-slate-500 mb-6">Data ini akan digunakan untuk mengisi otomatis Cover dan Lembar Pengesahan.</p>
                       
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-1">Nama Lengkap</label>
-                          <input name="name" value={formData.author.name} onChange={handleAuthorChange} type="text" className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50" />
+                          <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center justify-between">
+                            <span>Nama Lengkap</span>
+                            <span className="text-xs text-red-500 font-extrabold">* (Wajib)</span>
+                          </label>
+                          <input 
+                            name="name" 
+                            value={formData.author.name} 
+                            onChange={handleAuthorChange} 
+                            type="text" 
+                            placeholder="Contoh: Budi Santoso"
+                            className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50 font-semibold text-slate-900" 
+                          />
                         </div>
                         <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-1">NIM / NPM</label>
-                          <input name="nim" value={formData.author.nim} onChange={handleAuthorChange} type="text" className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50" />
+                          <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center justify-between">
+                            <span>NIM / NPM</span>
+                            <span className="text-xs text-red-500 font-extrabold">* (Wajib)</span>
+                          </label>
+                          <input 
+                            name="nim" 
+                            value={formData.author.nim} 
+                            onChange={handleAuthorChange} 
+                            type="text" 
+                            placeholder="Contoh: 21081010045"
+                            className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50 font-semibold text-slate-900" 
+                          />
                         </div>
                         <div>
                           <label className="block text-sm font-bold text-slate-700 mb-1">Fakultas</label>
-                          <input name="faculty" value={formData.author.faculty} onChange={handleAuthorChange} type="text" className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50" />
+                          <input name="faculty" value={formData.author.faculty} onChange={handleAuthorChange} type="text" placeholder="Contoh: Ilmu Komputer" className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50" />
                         </div>
                         <div>
                           <label className="block text-sm font-bold text-slate-700 mb-1">Program Studi / Bidang Ilmu</label>
                           <BidangIlmuSelector
                             value={formData.author.major}
-                            onChange={(val) => setFormData(prev => ({ ...prev, author: { ...prev.author, major: val } }))}
-                            placeholder="Contoh: Pendidikan Matematika, Teknik Informatika, Keperawatan..."
+                            onChange={(val) => {
+                              setValidationError('');
+                              setFormData(prev => ({ ...prev, author: { ...prev.author, major: val } }));
+                            }}
+                            placeholder="Contoh: Informatika, Keperawatan, Manajemen..."
                           />
                         </div>
                         <div>
@@ -601,7 +710,7 @@ export default function ProposalWizardPage() {
                         </div>
                         <div>
                           <label className="block text-sm font-bold text-slate-700 mb-1">Dosen Pembimbing</label>
-                          <input name="supervisor" value={formData.author.supervisor} onChange={handleAuthorChange} type="text" className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50" />
+                          <input name="supervisor" value={formData.author.supervisor} onChange={handleAuthorChange} type="text" placeholder="Contoh: Dr. Ahmad Dahlan, M.T." className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50" />
                         </div>
                       </div>
                     </div>
@@ -618,22 +727,52 @@ export default function ProposalWizardPage() {
                     className="space-y-6"
                   >
                     <div>
-                      <h2 className="text-2xl font-extrabold text-slate-900 mb-2">Detail Penelitian</h2>
+                      <h2 className="text-2xl font-extrabold text-slate-900 mb-2 flex items-center gap-2">
+                        3. Detail Penelitian <span className="text-xs bg-red-100 text-red-700 font-extrabold px-2.5 py-0.5 rounded-full border border-red-200">Wajib Diisi</span>
+                      </h2>
                       <p className="text-slate-500 mb-6">Informasi ini akan memandu AI dalam menyusun Latar Belakang dan Metodologi.</p>
                       
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-1">Judul Penelitian</label>
-                          <textarea name="title" value={formData.research.title} onChange={handleResearchChange} rows={2} className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50 resize-none" placeholder="Masukkan judul lengkap skripsi Anda..."></textarea>
+                          <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center justify-between">
+                            <span>Judul Penelitian</span>
+                            <span className="text-xs text-red-500 font-extrabold">* (Wajib)</span>
+                          </label>
+                          <textarea 
+                            name="title" 
+                            value={formData.research.title} 
+                            onChange={handleResearchChange} 
+                            rows={2} 
+                            className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50 resize-none font-semibold text-slate-900" 
+                            placeholder="Masukkan judul lengkap skripsi Anda..."
+                          ></textarea>
                         </div>
                         <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-1">Topik Utama</label>
-                          <input name="topic" value={formData.research.topic} onChange={handleResearchChange} type="text" className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50" placeholder="Contoh: Machine Learning, Pemasaran Digital, dll." />
+                          <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center justify-between">
+                            <span>Topik Utama</span>
+                            <span className="text-xs text-red-500 font-extrabold">* (Wajib)</span>
+                          </label>
+                          <input 
+                            name="topic" 
+                            value={formData.research.topic} 
+                            onChange={handleResearchChange} 
+                            type="text" 
+                            className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50 font-semibold text-slate-900" 
+                            placeholder="Contoh: Artificial Intelligence, Pemasaran Digital, Pelayanan Kesehatan" 
+                          />
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-1">Jenis Penelitian</label>
-                            <select name="type" value={formData.research.type} onChange={handleResearchChange} className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50">
+                            <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center justify-between">
+                              <span>Jenis Penelitian</span>
+                              <span className="text-xs text-red-500 font-extrabold">* (Wajib)</span>
+                            </label>
+                            <select 
+                              name="type" 
+                              value={formData.research.type} 
+                              onChange={handleResearchChange} 
+                              className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50 font-semibold text-slate-900"
+                            >
                               <option value="Kuantitatif">Kuantitatif</option>
                               <option value="Kualitatif">Kualitatif</option>
                               <option value="Campuran (Mixed Methods)">Campuran (Mixed Methods)</option>
@@ -641,13 +780,33 @@ export default function ProposalWizardPage() {
                             </select>
                           </div>
                           <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-1">Populasi / Objek Penelitian</label>
-                            <input name="population" value={formData.research.population} onChange={handleResearchChange} type="text" className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50" placeholder="Contoh: Mahasiswa aktif UI 2023" />
+                            <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center justify-between">
+                              <span>Populasi / Objek Penelitian</span>
+                              <span className="text-xs text-red-500 font-extrabold">* (Wajib)</span>
+                            </label>
+                            <input 
+                              name="population" 
+                              value={formData.research.population} 
+                              onChange={handleResearchChange} 
+                              type="text" 
+                              className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50 font-semibold text-slate-900" 
+                              placeholder="Contoh: Mahasiswa aktif S1 Informatika 2024" 
+                            />
                           </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-1">Variabel Penelitian (Opsional)</label>
-                          <input name="variables" value={formData.research.variables} onChange={handleResearchChange} type="text" className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50" placeholder="Contoh: (X) Kualitas Layanan, (Y) Kepuasan Pelanggan" />
+                          <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center justify-between">
+                            <span>Variabel Penelitian</span>
+                            <span className="text-xs text-red-500 font-extrabold">* (Wajib)</span>
+                          </label>
+                          <input 
+                            name="variables" 
+                            value={formData.research.variables} 
+                            onChange={handleResearchChange} 
+                            type="text" 
+                            className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50 font-semibold text-slate-900" 
+                            placeholder="Contoh: (X1) Fitur AI, (X2) Kemudahan Akses, (Y) Kepuasan Pengguna" 
+                          />
                         </div>
                       </div>
                     </div>
@@ -664,17 +823,63 @@ export default function ProposalWizardPage() {
                     className="space-y-6 text-center"
                   >
                     {!isFinished ? (
-                      <div>
-                        <div className="w-20 h-20 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                          <Sparkles className="w-10 h-10 text-emerald-600" />
+                      <div className="space-y-6">
+                        <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto">
+                          <Sparkles className="w-8 h-8 text-emerald-600 animate-pulse" />
                         </div>
-                        <h2 className="text-2xl font-extrabold text-slate-900 mb-2">Siap untuk Generate!</h2>
-                        <p className="text-slate-500 mb-8 max-w-md mx-auto">AI kami akan menyusun draft kasar Bab 1 (Latar Belakang, Rumusan Masalah, Tujuan) hingga Bab 3 berdasarkan data yang Anda berikan.</p>
-                        
+                        <div>
+                          <h2 className="text-2xl font-extrabold text-slate-900 mb-1">Semua Data Lengkap & Siap di-Generate!</h2>
+                          <p className="text-slate-500 text-xs max-w-md mx-auto">Klik tombol di bawah untuk menyusun proposal skripsi otomatis 1-Click berdasarkan data yang Anda isi.</p>
+                        </div>
+
+                        {/* Review Data Summary Card */}
+                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-left text-xs space-y-3 max-w-lg mx-auto">
+                          <h3 className="font-extrabold text-slate-900 uppercase tracking-wider text-[11px] border-b border-slate-200 pb-2 flex items-center justify-between">
+                            <span>📋 Ringkasan Data Proposal</span>
+                            <span className="text-emerald-600 font-bold">Terverifikasi</span>
+                          </h3>
+                          <div className="grid grid-cols-2 gap-2 text-slate-700">
+                            <div>
+                              <span className="text-[10px] text-slate-400 font-bold block">TEMPLATE UNIVERSITAS</span>
+                              <span className="font-bold text-slate-900">{formData.university}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-slate-400 font-bold block">KARYA ILMIAH</span>
+                              <span className="font-bold text-slate-900">{selectedDocType}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-slate-400 font-bold block">PENULIS</span>
+                              <span className="font-bold text-slate-900">{formData.author.name} ({formData.author.nim})</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-slate-400 font-bold block">JENIS PENELITIAN</span>
+                              <span className="font-bold text-slate-900">{formData.research.type}</span>
+                            </div>
+                          </div>
+                          <div className="pt-1">
+                            <span className="text-[10px] text-slate-400 font-bold block">JUDUL PENELITIAN</span>
+                            <span className="font-bold text-slate-900 line-clamp-2">{formData.research.title}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 pt-1">
+                            <div>
+                              <span className="text-[10px] text-slate-400 font-bold block">TOPIK UTAMA</span>
+                              <span className="font-bold text-slate-900">{formData.research.topic}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-slate-400 font-bold block">POPULASI / OBJEK</span>
+                              <span className="font-bold text-slate-900">{formData.research.population}</span>
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-400 font-bold block">VARIABEL PENELITIAN</span>
+                            <span className="font-bold text-slate-900">{formData.research.variables}</span>
+                          </div>
+                        </div>
+
                         {isGenerating ? (
-                          <div className="max-w-sm mx-auto space-y-4">
+                          <div className="max-w-sm mx-auto space-y-4 pt-2">
                             <div className="flex justify-between text-sm font-bold text-slate-700">
-                              <span>Menyusun Proposal...</span>
+                              <span>Menyusun Proposal 1-Click...</span>
                               <span>{generateProgress}%</span>
                             </div>
                             <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
@@ -683,14 +888,14 @@ export default function ProposalWizardPage() {
                                 style={{ width: `${generateProgress}%` }}
                               ></div>
                             </div>
-                            <p className="text-xs text-slate-400 animate-pulse">Menghubungkan ke database SINTA & Garuda...</p>
+                            <p className="text-xs text-slate-400 animate-pulse">Menghubungkan ke Multi-Engine AI & database literatur...</p>
                           </div>
                         ) : (
                           <button 
                             onClick={handleGenerate}
-                            className="px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-xl shadow-slate-900/20 transition-all hover:-translate-y-1 flex items-center gap-2 mx-auto"
+                            className="w-full sm:w-auto px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm rounded-xl shadow-xl shadow-slate-900/20 transition-all hover:-translate-y-1 flex items-center justify-center gap-2 mx-auto"
                           >
-                            <Wand2 className="w-5 h-5" /> Mulai Generate Proposal 1-Click
+                            <Wand2 className="w-5 h-5 text-emerald-400" /> Generate Proposal 1-Click
                           </button>
                         )}
                       </div>
