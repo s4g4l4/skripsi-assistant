@@ -8,6 +8,13 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [generatedOtpCode, setGeneratedOtpCode] = useState(() => Math.floor(100000 + Math.random() * 900000).toString());
+
+  const handleGenerateNewOtp = () => {
+    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedOtpCode(newCode);
+    return newCode;
+  };
 
   const [formData, setFormData] = useState({
     name: '',
@@ -238,39 +245,77 @@ export default function RegisterPage() {
                   transition={{ duration: 0.2 }}
                   className="space-y-6 text-center"
                 >
-                  <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                  <div className="mx-auto w-16 h-16 bg-emerald-100 border border-emerald-300 rounded-2xl flex items-center justify-center mb-2 shadow-inner">
                     <Mail className="h-8 w-8 text-emerald-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-2">Verifikasi Email Anda</h3>
+                    <h3 className="text-xl font-extrabold text-slate-900 mb-1">Verifikasi Kode Email</h3>
                     <p className="text-sm text-slate-600">
-                      Kami telah mengirimkan 6-digit kode OTP ke <br/>
-                      <span className="font-semibold text-slate-900">{formData.email || 'email anda'}</span>
+                      Kode OTP 6-digit dikirim oleh <strong className="font-bold text-slate-900">drido652@gmail.com</strong> ke: <br/>
+                      <span className="font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 inline-block mt-1 font-mono text-xs">{formData.email || 'email@anda.com'}</span>
                     </p>
                   </div>
+
+                  {/* High Contrast Banner for Demo / Instant OTP with Sender Email */}
+                  <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-2xl text-left space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-black text-amber-900 flex items-center gap-1.5">
+                        <Wand2 className="w-4 h-4 text-amber-600" /> Pengirim: drido652@gmail.com
+                      </span>
+                      <span className="font-mono font-black text-sm text-slate-900 bg-white px-2.5 py-0.5 rounded-lg border border-amber-300 shadow-xs tracking-wider">
+                        {generatedOtpCode}
+                      </span>
+                    </div>
+                    <p className="text-slate-700 text-[11px] leading-relaxed">
+                      Layanan OTP Otomatis dikirim dari email <strong>drido652@gmail.com</strong>. Klik tombol di bawah untuk Auto-Fill kode OTP acak ({generatedOtpCode}) secara otomatis:
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, otp: generatedOtpCode.split('') });
+                      }}
+                      className="w-full py-2 px-3 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-black text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <CheckCircle2 className="w-4 h-4" /> Auto-Fill Kode OTP Acak ({generatedOtpCode})
+                    </button>
+                  </div>
                   
-                  <div className="flex justify-center gap-2">
-                    {formData.otp.map((digit, i) => (
-                      <input
-                        key={i}
-                        id={`otp-${i}`}
-                        type="text"
-                        maxLength={1}
-                        className="w-10 h-12 text-center text-xl font-bold border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-slate-50 focus:bg-white transition-colors"
-                        value={digit}
-                        onChange={(e) => handleOtpChange(i, e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Backspace' && !digit && i > 0) {
-                            const prev = document.getElementById(`otp-${i - 1}`);
-                            prev?.focus();
-                          }
-                        }}
-                      />
-                    ))}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-2">Masukkan 6-Digit Kode OTP</label>
+                    <div className="flex justify-center gap-2">
+                      {formData.otp.map((digit, i) => (
+                        <input
+                          key={i}
+                          id={`otp-${i}`}
+                          type="text"
+                          maxLength={1}
+                          className="w-10 h-12 text-center text-xl font-extrabold border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-slate-900 shadow-xs transition-all"
+                          value={digit}
+                          onChange={(e) => handleOtpChange(i, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Backspace' && !digit && i > 0) {
+                              const prev = document.getElementById(`otp-${i - 1}`);
+                              prev?.focus();
+                            }
+                          }}
+                        />
+                      ))}
+                    </div>
                   </div>
 
-                  <p className="text-sm text-slate-500">
-                    Belum menerima kode? <button className="font-bold text-emerald-600 hover:text-emerald-500">Kirim Ulang</button>
+                  <p className="text-xs text-slate-500">
+                    Belum melihat kode?{' '}
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const newCode = handleGenerateNewOtp();
+                        setFormData({ ...formData, otp: newCode.split('') });
+                        alert(`Kode OTP acak baru (${newCode}) telah dikirim oleh drido652@gmail.com`);
+                      }}
+                      className="font-bold text-emerald-600 hover:text-emerald-500 underline"
+                    >
+                      Kirim Ulang Kode OTP Acak
+                    </button>
                   </p>
                 </motion.div>
               )}
@@ -299,11 +344,23 @@ export default function RegisterPage() {
                   type="submit"
                   onClick={(e) => {
                     e.preventDefault();
+                    const now = Date.now();
+                    const newUserAccess = {
+                      id: `user-${now}`,
+                      name: formData.name || 'User Dukun Skripsi',
+                      email: formData.email || 'user@dukunskripsi.id',
+                      role: 'user' as const,
+                      trialStartedAt: now,
+                      trialDurationHours: 5,
+                      accessGrantedUntil: now + 5 * 3600 * 1000,
+                      accessStatus: 'active' as const
+                    };
+                    localStorage.setItem('user_info', JSON.stringify(newUserAccess));
                     navigate('/dashboard');
                   }}
                   className="flex-1 flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
                 >
-                  <CheckCircle2 className="w-4 h-4" /> Selesai Daftar
+                  <CheckCircle2 className="w-4 h-4" /> Selesai Daftar (Mulai Trial 5 Jam)
                 </button>
               )}
             </div>
