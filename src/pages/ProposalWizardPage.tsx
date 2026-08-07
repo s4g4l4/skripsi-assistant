@@ -2,27 +2,26 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Building2, UploadCloud, UserCircle, BookOpen, Wand2, 
-  ArrowRight, ArrowLeft, CheckCircle2, FileText, X, Search
+  ArrowRight, ArrowLeft, CheckCircle2, FileText, X, Search, MapPin
 , Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-
-const UNIVERSITIES = [
-  'Universitas Indonesia',
-  'Universitas Gadjah Mada',
-  'Institut Teknologi Bandung',
-  'Universitas Hasanuddin',
-  'Universitas Diponegoro',
-  'Universitas Brawijaya',
-  'Universitas Padjadjaran',
-  'Institut Pertanian Bogor',
-  'Universitas Airlangga',
-  'Universitas Sebelas Maret',
-];
+import { DEFAULT_UNIVERSITIES, UniversityTemplate } from '../data/universities';
 
 export default function ProposalWizardPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [searchUniv, setSearchUniv] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
+  
+  const categories = ['Semua', 'PTN', 'PTS', 'PTKIN', 'Politeknik', 'Sekolah Tinggi'];
+
+  const filteredUnivs = DEFAULT_UNIVERSITIES.filter(u => {
+    const matchesCategory = selectedCategory === 'Semua' || u.category === selectedCategory;
+    const matchesSearch = u.name.toLowerCase().includes(searchUniv.toLowerCase()) ||
+                          u.city.toLowerCase().includes(searchUniv.toLowerCase()) ||
+                          u.province.toLowerCase().includes(searchUniv.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
   
   const [formData, setFormData] = useState({
     university: '',
@@ -47,10 +46,6 @@ export default function ProposalWizardPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateProgress, setGenerateProgress] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
-
-  const filteredUnivs = UNIVERSITIES.filter(u => 
-    u.toLowerCase().includes(searchUniv.toLowerCase())
-  );
 
   const handleAuthorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -152,35 +147,74 @@ export default function ProposalWizardPage() {
                     className="space-y-6"
                   >
                     <div>
-                      <h2 className="text-2xl font-extrabold text-slate-900 mb-2">Pilih Template Universitas</h2>
-                      <p className="text-slate-500 mb-6">Kami akan menyesuaikan margin, font, dan spasi sesuai aturan kampus Anda.</p>
+                      <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-2xl font-extrabold text-slate-900">Pilih Template Universitas</h2>
+                        <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full border border-emerald-200">
+                          Data Kemendikdasmen / DIKTI
+                        </span>
+                      </div>
+                      <p className="text-slate-500 mb-6">Sistem menyesuaikan margin, font, dan spasi otomatis berdasarkan pedoman resmi kampus Anda.</p>
                       
+                      {/* Category Pills */}
+                      <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-4 custom-scrollbar">
+                        {categories.map((cat) => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setSelectedCategory(cat)}
+                            className={`px-3.5 py-1.5 text-xs font-extrabold rounded-xl whitespace-nowrap transition-all ${
+                              selectedCategory === cat 
+                                ? 'bg-emerald-500 text-white shadow-sm ring-2 ring-emerald-500/20' 
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Search Input */}
                       <div className="relative mb-4">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                           <Search className="h-5 w-5 text-slate-400" />
                         </div>
                         <input 
                           type="text" 
                           value={searchUniv}
                           onChange={(e) => setSearchUniv(e.target.value)}
-                          className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-slate-50" 
-                          placeholder="Cari nama universitas..." 
+                          className="block w-full pl-11 pr-4 py-3 border border-slate-300 rounded-xl shadow-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white" 
+                          placeholder="Cari nama kampus, kota, atau provinsi..." 
                         />
                       </div>
 
-                      <div className="max-h-64 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 custom-scrollbar">
-                        {filteredUnivs.length > 0 ? filteredUnivs.map((univ, idx) => (
-                          <div 
-                            key={idx}
-                            onClick={() => setFormData({ ...formData, university: univ })}
-                            className={`p-4 cursor-pointer hover:bg-emerald-50 transition-colors flex items-center justify-between ${formData.university === univ ? 'bg-emerald-50' : ''}`}
-                          >
-                            <span className={`font-medium ${formData.university === univ ? 'text-emerald-700' : 'text-slate-700'}`}>{univ}</span>
-                            {formData.university === univ && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
-                          </div>
-                        )) : (
-                          <div className="p-6 text-center text-slate-500">
-                            Universitas tidak ditemukan. Anda dapat mengunggah buku panduan di langkah selanjutnya.
+                      {/* University List Grid */}
+                      <div className="max-h-72 overflow-y-auto border border-slate-200 rounded-2xl divide-y divide-slate-100 bg-white custom-scrollbar p-1">
+                        {filteredUnivs.length > 0 ? filteredUnivs.map((univ) => {
+                          const isSelected = formData.university === univ.name;
+                          return (
+                            <div 
+                              key={univ.id}
+                              onClick={() => setFormData({ ...formData, university: univ.name })}
+                              className={`p-3.5 rounded-xl cursor-pointer transition-all flex items-center justify-between my-0.5 ${
+                                isSelected 
+                                  ? 'bg-emerald-50 border border-emerald-300 text-emerald-900 font-bold' 
+                                  : 'hover:bg-slate-50 text-slate-800'
+                              }`}
+                            >
+                              <div>
+                                <p className={`text-sm font-bold ${isSelected ? 'text-emerald-900' : 'text-slate-900'}`}>
+                                  {univ.name}
+                                </p>
+                                <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
+                                  <MapPin className="w-3 h-3 text-slate-400" /> {univ.city}, {univ.province} • <span className="font-semibold text-emerald-700">{univ.category}</span>
+                                </p>
+                              </div>
+                              {isSelected && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />}
+                            </div>
+                          );
+                        }) : (
+                          <div className="p-8 text-center text-slate-500 text-sm">
+                            Universitas tidak ditemukan dalam pencarian. Anda tetap dapat mengunggah buku panduan spesifik kampus Anda di langkah berikutnya.
                           </div>
                         )}
                       </div>

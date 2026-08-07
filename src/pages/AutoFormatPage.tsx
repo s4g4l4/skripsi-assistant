@@ -1,46 +1,63 @@
 import React, { useState } from 'react';
 import { 
   UploadCloud, Settings, FileText, Download, CheckCircle2, 
-  Search, Wand2, ArrowRight, History, FileDown, AlertCircle
+  Search, Wand2, ArrowRight, History, FileDown, AlertCircle, Building2, MapPin, Tag
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
-
-const UNIVERSITIES = [
-  'Deteksi Otomatis (AI)',
-  'Universitas Indonesia',
-  'Universitas Gadjah Mada',
-  'Institut Teknologi Bandung',
-  'Universitas Brawijaya',
-  'Universitas Diponegoro',
-];
+import { DEFAULT_UNIVERSITIES, UniversityTemplate } from '../data/universities';
 
 const RECENT_FORMATS = [
-  { id: 1, name: 'Bab_1_Pendahuluan.docx', date: 'Hari ini, 10:30', status: 'Selesai', univ: 'Universitas Indonesia' },
-  { id: 2, name: 'Draft_Skripsi_Full.pdf', date: 'Kemarin, 15:45', status: 'Selesai', univ: 'Universitas Gadjah Mada' },
+  { id: 1, name: 'Bab_1_Pendahuluan.docx', date: 'Hari ini, 10:30', status: 'Selesai', univ: 'Universitas Indonesia (UI)' },
+  { id: 2, name: 'Draft_Skripsi_Full.pdf', date: 'Kemarin, 15:45', status: 'Selesai', univ: 'Universitas Gadjah Mada (UGM)' },
 ];
 
 export default function AutoFormatPage() {
   const [step, setStep] = useState(1);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [searchUniv, setSearchUniv] = useState('');
-  const [selectedUniv, setSelectedUniv] = useState('Deteksi Otomatis (AI)');
+  const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
+  const [selectedUnivObj, setSelectedUnivObj] = useState<UniversityTemplate>(DEFAULT_UNIVERSITIES[0]);
   
   const [formatSettings, setFormatSettings] = useState({
     font: 'Times New Roman',
     size: '12',
     spacing: '1.5',
-    margin: { top: '3', bottom: '3', left: '4', right: '3' },
-    pageNumber: 'Bawah Tengah'
+    margin: { top: '4', bottom: '3', left: '4', right: '3' },
+    pageNumber: 'Kanan Atas / Bawah Tengah'
   });
 
   const [isFormatting, setIsFormatting] = useState(false);
   const [formatProgress, setFormatProgress] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
 
-  const filteredUnivs = UNIVERSITIES.filter(u => 
-    u.toLowerCase().includes(searchUniv.toLowerCase())
-  );
+  const categories = ['Semua', 'PTN', 'PTS', 'PTKIN', 'Politeknik', 'Sekolah Tinggi'];
+
+  const filteredUnivs = DEFAULT_UNIVERSITIES.filter(u => {
+    const matchesCategory = selectedCategory === 'Semua' || u.category === selectedCategory;
+    const matchesSearch = u.name.toLowerCase().includes(searchUniv.toLowerCase()) ||
+                          u.city.toLowerCase().includes(searchUniv.toLowerCase()) ||
+                          u.province.toLowerCase().includes(searchUniv.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const handleSelectUniv = (univ: UniversityTemplate) => {
+    setSelectedUnivObj(univ);
+    if (univ.formatPreset) {
+      setFormatSettings({
+        font: univ.formatPreset.font.split('/')[0].trim(),
+        size: univ.formatPreset.fontSize.replace('pt', ''),
+        spacing: univ.formatPreset.lineSpacing,
+        margin: {
+          top: univ.formatPreset.margins.top.replace(' cm', ''),
+          bottom: univ.formatPreset.margins.bottom.replace(' cm', ''),
+          left: univ.formatPreset.margins.left.replace(' cm', ''),
+          right: univ.formatPreset.margins.right.replace(' cm', ''),
+        },
+        pageNumber: univ.formatPreset.pageNumberPos
+      });
+    }
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -184,9 +201,34 @@ export default function AutoFormatPage() {
                     </div>
 
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                        <Building2Icon className="w-4 h-4 text-emerald-500" /> Template Universitas
-                      </h3>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-emerald-600" /> Pilih Template Universitas (Kemendikdasmen / Dikti)
+                        </h3>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
+                          Data Resmi DIKTI
+                        </span>
+                      </div>
+
+                      {/* Category Pills */}
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-3 custom-scrollbar">
+                        {categories.map((cat) => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setSelectedCategory(cat)}
+                            className={`px-3 py-1 text-xs font-bold rounded-xl whitespace-nowrap transition-all ${
+                              selectedCategory === cat 
+                                ? 'bg-emerald-500 text-white shadow-xs' 
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Search Bar */}
                       <div className="relative mb-3">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                           <Search className="h-4 w-4 text-slate-400" />
@@ -195,23 +237,58 @@ export default function AutoFormatPage() {
                           type="text" 
                           value={searchUniv}
                           onChange={(e) => setSearchUniv(e.target.value)}
-                          className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-emerald-500 focus:border-emerald-500" 
-                          placeholder="Cari universitas..." 
+                          className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white" 
+                          placeholder="Cari universitas, kota, atau provinsi..." 
                         />
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto p-1 custom-scrollbar">
-                        {filteredUnivs.map((univ, idx) => (
-                          <div 
-                            key={idx}
-                            onClick={() => setSelectedUniv(univ)}
-                            className={`p-3 rounded-xl border cursor-pointer transition-all ${selectedUniv === univ ? 'border-emerald-500 bg-emerald-50 shadow-sm' : 'border-slate-200 hover:border-emerald-300'}`}
-                          >
-                            <span className={`text-sm font-medium ${selectedUniv === univ ? 'text-emerald-700' : 'text-slate-700'}`}>
-                              {univ}
-                            </span>
-                          </div>
-                        ))}
+
+                      {/* University Card Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto p-1 custom-scrollbar">
+                        {filteredUnivs.map((univ) => {
+                          const isSelected = selectedUnivObj.id === univ.id;
+                          return (
+                            <div 
+                              key={univ.id}
+                              onClick={() => handleSelectUniv(univ)}
+                              className={`p-3 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between gap-1.5 ${
+                                isSelected 
+                                  ? 'border-emerald-500 bg-emerald-50/80 shadow-xs ring-2 ring-emerald-500/20' 
+                                  : 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-slate-50'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <span className={`text-xs font-extrabold leading-snug ${isSelected ? 'text-emerald-900' : 'text-slate-800'}`}>
+                                  {univ.name}
+                                </span>
+                                {isSelected && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />}
+                              </div>
+                              <div className="flex items-center justify-between text-[10px] text-slate-500">
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="w-3 h-3 text-slate-400" /> {univ.city}, {univ.province}
+                                </span>
+                                <span className="px-1.5 py-0.5 bg-slate-100 text-slate-700 font-bold rounded">
+                                  {univ.category}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
+
+                      {/* Selected Univ Preset Banner */}
+                      {selectedUnivObj && (
+                        <div className="mt-3 p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs text-emerald-900 flex items-center justify-between gap-2">
+                          <div>
+                            <p className="font-bold">Template Aktif: {selectedUnivObj.name}</p>
+                            <p className="text-[10px] text-emerald-700">
+                              Format: {selectedUnivObj.formatPreset.font} ({selectedUnivObj.formatPreset.fontSize}) • Spasi {selectedUnivObj.formatPreset.lineSpacing} • Margin {selectedUnivObj.formatPreset.margins.top}-{selectedUnivObj.formatPreset.margins.bottom}-{selectedUnivObj.formatPreset.margins.left}-{selectedUnivObj.formatPreset.margins.right}
+                            </p>
+                          </div>
+                          <span className="text-[10px] font-extrabold bg-emerald-600 text-white px-2 py-1 rounded-lg shrink-0">
+                            Auto-Preset
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div>
