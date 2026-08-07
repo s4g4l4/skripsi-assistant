@@ -1,0 +1,6 @@
+{
+  "name": "Dukun Skripsi Analysis",
+  "description": "Interactive analysis report for an AI Thesis Assistant platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
