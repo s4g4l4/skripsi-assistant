@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Eye, EyeOff, Mail, Lock, User, GraduationCap, Building, Calendar, ArrowRight, ArrowLeft, Wand2, CheckCircle2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import BidangIlmuSelector from '../components/BidangIlmuSelector';
+import { registerOrUpdateUserAccess } from '../utils/accessControl';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -357,11 +358,12 @@ export default function RegisterPage() {
                       accessStatus: 'active' as const
                     };
                     localStorage.setItem('user_info', JSON.stringify(newUserAccess));
+                    registerOrUpdateUserAccess(newUserAccess);
                     navigate('/dashboard');
                   }}
                   className="flex-1 flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
                 >
-                  <CheckCircle2 className="w-4 h-4" /> Selesai Daftar (Mulai Trial 5 Jam)
+                  <CheckCircle2 className="w-4 h-4" /> Selesai Daftar & Aktifkan Akses
                 </button>
               )}
             </div>

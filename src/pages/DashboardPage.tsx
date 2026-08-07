@@ -193,7 +193,7 @@ export default function DashboardPage() {
                   <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 text-xs font-bold shadow-xs">
                     <Clock className="w-4 h-4 text-emerald-600 animate-pulse shrink-0" />
                     <div>
-                      <span className="text-[10px] text-emerald-700 block uppercase font-extrabold">Akses Mulai Gratis 5 Jam</span>
+                      <span className="text-[10px] text-emerald-700 block uppercase font-extrabold">Masa Aktif Akses</span>
                       <span className="text-emerald-900 font-extrabold">{remainingTime}</span>
                     </div>
                   </div>

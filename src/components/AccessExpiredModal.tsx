@@ -27,7 +27,7 @@ export default function AccessExpiredModal({ isOpen, userEmail }: AccessExpiredM
         </span>
 
         <h2 className="text-xl font-black text-slate-900 tracking-tight mb-2">
-          Masa Uji Coba (Trial) 5 Jam Telah Habis
+          Masa Aktif Akses Telah Habis
         </h2>
 
         <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left space-y-2 mb-6 text-xs text-slate-700 leading-relaxed">

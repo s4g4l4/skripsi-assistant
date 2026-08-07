@@ -19,17 +19,35 @@ const CURRENT_USER_KEY = 'user_info';
 
 // Initialize default users if not present
 export function getStoredUsers(): UserAccessInfo[] {
+  const now = Date.now();
+  const defaultAjeng: UserAccessInfo = {
+    id: 'user-ajeng-01',
+    name: 'Ajeng Maharani',
+    email: 'ajengmaharani@gmail.com',
+    role: 'user',
+    trialStartedAt: now,
+    trialDurationHours: 24,
+    accessGrantedUntil: now + 24 * 3600 * 1000,
+    accessStatus: 'active'
+  };
+
   try {
     const raw = localStorage.getItem(DEFAULT_USERS_KEY);
     if (raw) {
-      return JSON.parse(raw);
+      const users: UserAccessInfo[] = JSON.parse(raw);
+      // Ensure Ajeng Maharani exists in list
+      const hasAjeng = users.some(u => u.name.toLowerCase().includes('ajeng') || u.email.toLowerCase().includes('ajeng'));
+      if (!hasAjeng) {
+        users.push(defaultAjeng);
+        saveStoredUsers(users);
+      }
+      return users;
     }
   } catch (e) {
     console.error('Failed to parse stored users:', e);
   }
 
   // Default seed users
-  const now = Date.now();
   const seedUsers: UserAccessInfo[] = [
     {
       id: 'admin-01',
@@ -41,13 +59,14 @@ export function getStoredUsers(): UserAccessInfo[] {
       accessGrantedUntil: now + 999999 * 3600 * 1000,
       accessStatus: 'unlimited'
     },
+    defaultAjeng,
     {
       id: 'user-analysis-01',
       name: 'User Uji Coba Analysis',
       email: 'analysis@dukunskripsi.id',
       role: 'user',
       trialStartedAt: now,
-      trialDurationHours: 5, // 5 hours trial
+      trialDurationHours: 5,
       accessGrantedUntil: now + 5 * 3600 * 1000,
       accessStatus: 'active'
     }
@@ -55,6 +74,17 @@ export function getStoredUsers(): UserAccessInfo[] {
 
   localStorage.setItem(DEFAULT_USERS_KEY, JSON.stringify(seedUsers));
   return seedUsers;
+}
+
+export function registerOrUpdateUserAccess(user: UserAccessInfo) {
+  const allUsers = getStoredUsers();
+  const index = allUsers.findIndex(u => u.email.toLowerCase() === user.email.toLowerCase());
+  if (index >= 0) {
+    allUsers[index] = { ...allUsers[index], ...user };
+  } else {
+    allUsers.push(user);
+  }
+  saveStoredUsers(allUsers);
 }
 
 export function saveStoredUsers(users: UserAccessInfo[]) {

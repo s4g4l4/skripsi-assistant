@@ -87,7 +87,7 @@ export default function SettingsPage() {
             <p className="text-xs text-emerald-200 mt-0.5">{userInfo.email}</p>
             <div className="mt-3 pt-3 border-t border-emerald-800/50 flex items-center justify-between">
               <span className="text-xs font-bold text-amber-300 flex items-center gap-1">
-                ⭐ {userInfo.email === 'febricase@gmail.com' ? 'Akses Admin' : 'Akses Fitur Penuh (5 Jam)'}
+                ⭐ {userInfo.email === 'febricase@gmail.com' ? 'Akses Admin' : 'Akses Fitur Penuh'}
               </span>
               <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full">
                 Aktif

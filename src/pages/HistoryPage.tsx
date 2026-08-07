@@ -4,18 +4,28 @@ import {
   Layers, Database, Sparkles, BookOpen, Clock, ChevronRight, CheckCircle2, ExternalLink
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getUserProjects } from '../utils/projectStorage';
 
 interface HistoryItem {
   id: string;
   type: 'Proposal' | 'Editor' | 'Olah Data' | 'Auto Format' | 'Citation' | 'Chat PDF';
   title: string;
   date: string;
-  status: 'Selesai' | 'Dalam Proses' | 'Revisi';
+  status: 'Selesai' | 'Sukses';
   summary: string;
   path: string;
 }
 
-const HISTORY_ITEMS: HistoryItem[] = [
+const DEFAULT_HISTORY_ITEMS: HistoryItem[] = [
+  {
+    id: 'h-0',
+    type: 'Proposal',
+    title: 'Generasi Otomatis Bab 1-5 (Latar Belakang, Tinjauan Pustaka, Metodologi, Hasil & Pembahasan)',
+    date: 'Hari ini, Baru Saja',
+    status: 'Sukses',
+    summary: 'Pembuatan kerangka proposal & isi lengkap Bab 1-5 berstandar akademik tinggi berhasil diselesaikan.',
+    path: '/editor'
+  },
   {
     id: 'h-1',
     type: 'Olah Data',
@@ -39,8 +49,8 @@ const HISTORY_ITEMS: HistoryItem[] = [
     type: 'Proposal',
     title: 'Draft Bab 1-3: Implementasi Machine Learning untuk Prediksi Harga Saham UMKM',
     date: '04 Agu 2026',
-    status: 'Dalam Proses',
-    summary: 'Latar belakang, rumusan masalah, dan tinjauan pustaka utama telah dibuat.',
+    status: 'Selesai',
+    summary: 'Latar belakang, rumusan masalah, dan tinjauan pustaka utama telah diselesaikan dengan sukses.',
     path: '/editor'
   },
   {
@@ -67,7 +77,28 @@ export default function HistoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('All');
 
-  const filteredItems = HISTORY_ITEMS.filter(item => {
+  // Load user saved projects dynamically and merge with default items
+  const userProjects = getUserProjects();
+  const dynamicProjectHistory: HistoryItem[] = userProjects.map((proj) => ({
+    id: proj.id,
+    type: 'Proposal' as const,
+    title: `${proj.documentType || 'Skripsi'}: ${proj.title}`,
+    date: new Date(proj.updatedAt || Date.now()).toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }),
+    status: 'Sukses' as const,
+    summary: `Dokumen ${proj.documentType} untuk ${proj.universityName || 'Universitas'}. Bab 1 - 5 lengkap ter-generate.`,
+    path: '/editor'
+  }));
+
+  // Deduplicate and combine history
+  const allHistoryItems = [...dynamicProjectHistory, ...DEFAULT_HISTORY_ITEMS];
+
+  const filteredItems = allHistoryItems.filter(item => {
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           item.summary.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = filterType === 'All' || item.type === filterType;

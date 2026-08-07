@@ -115,7 +115,7 @@ export default function AdminPanelModal({ isOpen, onClose }: AdminPanelModalProp
             </div>
             <div>
               <h2 className="text-lg font-black text-slate-900 tracking-tight">Panel Kelola Akses User (Admin)</h2>
-              <p className="text-xs text-slate-500">Atur & sesuaikan (tambah/kurang) jam dan hari masa aktif pengguna</p>
+              <p className="text-xs text-slate-500">Atur & simpan jam/hari masa aktif secara individual untuk tiap pengguna</p>
             </div>
           </div>
           <button 
@@ -166,7 +166,10 @@ export default function AdminPanelModal({ isOpen, onClose }: AdminPanelModalProp
                             <span className="bg-red-50 text-red-700 border border-red-200 text-[10px] font-black px-2 py-0.5 rounded-full">AKSES BERAKHIR</span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-500 font-mono mt-0.5">{u.email}</p>
+                        <p className="text-xs text-slate-500 font-mono mt-0.5 flex items-center gap-2">
+                          <span>{u.email}</span>
+                          <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded font-semibold">💾 Pengaturan Khusus User Ini</span>
+                        </p>
                       </div>
 
                       <div className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200/80 flex items-center gap-1.5 self-start sm:self-center">
