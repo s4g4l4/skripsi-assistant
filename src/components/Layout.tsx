@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Wand2, Menu, X } from 'lucide-react';
+import { Wand2, Menu, X, ArrowLeft, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export function Navbar() {
@@ -16,9 +16,15 @@ export function Navbar() {
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
             <a href="#fitur" className="hover:text-emerald-400 transition-colors">Fitur</a>
-            <a href="#testimoni" className="hover:text-emerald-400 transition-colors">Testimoni</a>
             <a href="#faq" className="hover:text-emerald-400 transition-colors">FAQ</a>
-            <a href="#pricing" className="hover:text-emerald-400 transition-colors">Pricing</a>
+            <a 
+              href="https://skripsi-assistant-jade.vercel.app" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold text-xs rounded-xl border border-slate-700 transition-all flex items-center gap-1.5 shadow-2xs"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Kembali ke Web Utama
+            </a>
           </div>
           <div className="hidden md:flex items-center gap-4">
             <Link to="/login" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Masuk</Link>
@@ -36,9 +42,15 @@ export function Navbar() {
         <div className="md:hidden bg-slate-900 border-b border-slate-800">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <a href="#fitur" onClick={() => setIsOpen(false)} className="block px-3 py-2 text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-md">Fitur</a>
-            <a href="#testimoni" onClick={() => setIsOpen(false)} className="block px-3 py-2 text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-md">Testimoni</a>
             <a href="#faq" onClick={() => setIsOpen(false)} className="block px-3 py-2 text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-md">FAQ</a>
-            <a href="#pricing" onClick={() => setIsOpen(false)} className="block px-3 py-2 text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-md">Pricing</a>
+            <a 
+              href="https://skripsi-assistant-jade.vercel.app" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="px-3 py-2 text-base font-bold text-emerald-400 hover:bg-slate-800 rounded-md flex items-center gap-2"
+            >
+              <Globe className="w-4 h-4" /> Kembali ke Web Utama
+            </a>
           </div>
           <div className="pt-4 pb-3 border-t border-slate-800">
             <div className="flex items-center px-5 gap-4">
@@ -69,8 +81,17 @@ export function Footer() {
           <h4 className="text-white font-bold mb-4">Produk</h4>
           <ul className="space-y-2 text-sm">
             <li><a href="#fitur" className="hover:text-emerald-400 transition-colors">Fitur</a></li>
-            <li><a href="#pricing" className="hover:text-emerald-400 transition-colors">Harga</a></li>
-            <li><a href="#testimoni" className="hover:text-emerald-400 transition-colors">Testimoni</a></li>
+            <li><a href="#faq" className="hover:text-emerald-400 transition-colors">FAQ</a></li>
+            <li>
+              <a 
+                href="https://skripsi-assistant-jade.vercel.app" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="hover:text-emerald-400 transition-colors flex items-center gap-1 font-bold text-emerald-400"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Web Utama
+              </a>
+            </li>
           </ul>
         </div>
         <div>

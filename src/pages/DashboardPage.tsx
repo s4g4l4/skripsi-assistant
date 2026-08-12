@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Wand2, LayoutDashboard, PlusCircle, FileText, Edit3, Sparkles, 
   Layers, Presentation, MessageSquare, Database, History, ArrowRight,
-  Settings, LogOut, Bell, Search, Menu, X, ChevronRight, Upload, PlayCircle, Lightbulb, BookOpen, Users, Clock, ShieldCheck, Trash2
+  Settings, LogOut, Bell, Search, Menu, X, ChevronRight, Upload, PlayCircle, Lightbulb, BookOpen, Users, Clock, ShieldCheck, Trash2, Globe
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
@@ -123,6 +123,15 @@ export default function DashboardPage() {
             </button>
           )}
 
+          <a 
+            href="https://skripsi-assistant-jade.vercel.app" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 font-bold text-xs rounded-xl border border-slate-200 transition-colors"
+          >
+            <Globe className="w-4 h-4 text-emerald-600" /> Web Utama
+          </a>
+
           <Link to="/login" className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-colors">
             <LogOut className="w-4 h-4 text-red-500" />
             Logout
@@ -156,6 +165,16 @@ export default function DashboardPage() {
           </div>
           
           <div className="flex items-center gap-3">
+            <a
+              href="https://skripsi-assistant-jade.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 text-xs font-bold rounded-xl border border-slate-200 transition-colors"
+              title="Kembali ke Web Utama"
+            >
+              <Globe className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="hidden md:inline">Web Utama</span>
+            </a>
             {isAdmin && (
               <button
                 onClick={() => setIsAdminModalOpen(true)}
