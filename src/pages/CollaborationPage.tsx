@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { 
   Users, UserPlus, Mail, Shield, MessageSquare, History, CheckCircle2, 
   Clock, AlertCircle, FileText, ArrowLeft, Send, Trash2, Check, 
-  ChevronRight, CornerDownRight, Filter, RefreshCw, Sparkles, BookOpen, UserCheck
+  ChevronRight, CornerDownRight, Filter, RefreshCw, Sparkles, BookOpen, UserCheck, GraduationCap
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import ThesisRoadmap from '../components/ThesisRoadmap';
 
 interface Collaborator {
   id: string;
@@ -55,7 +56,7 @@ interface ChapterApprovalItem {
 }
 
 export default function CollaborationPage() {
-  const [activeTab, setActiveTab] = useState<'collaborators' | 'approvals' | 'comments' | 'history'>('approvals');
+  const [activeTab, setActiveTab] = useState<'roadmap' | 'approvals' | 'comments' | 'collaborators' | 'history'>('roadmap');
   const [projectId] = useState('proj-demo-1');
 
   // Data states
@@ -289,10 +290,19 @@ export default function CollaborationPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-800 p-1 rounded-xl border border-slate-700 text-xs">
+        <div className="flex items-center gap-2 bg-slate-800 p-1 rounded-xl border border-slate-700 text-xs overflow-x-auto">
+          <button
+            onClick={() => setActiveTab('roadmap')}
+            className={`px-3 py-1.5 rounded-lg font-bold transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+              activeTab === 'roadmap' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <GraduationCap className="w-3.5 h-3.5 text-indigo-300" />
+            <span>Alur Bimbingan & Roadmap (12 Langkah)</span>
+          </button>
           <button
             onClick={() => setActiveTab('approvals')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap ${
               activeTab === 'approvals' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -351,6 +361,9 @@ export default function CollaborationPage() {
             </div>
           </div>
         </div>
+
+        {/* TAB 0: ALUR BIMBINGAN & ROADMAP SKRIPSI */}
+        {activeTab === 'roadmap' && <ThesisRoadmap />}
 
         {/* TAB 1: CHAPTER APPROVAL WORKFLOW */}
         {activeTab === 'approvals' && (

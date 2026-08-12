@@ -64,6 +64,47 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
+export const socialLogin = async (req: Request, res: Response) => {
+  try {
+    const { email, name, provider, university, major } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email wajib diisi' });
+    }
+
+    let user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!user) {
+      user = {
+        id: `user-${Date.now()}`,
+        email,
+        name: name || email.split('@')[0],
+        role: 'user',
+        plan: 'Gratis',
+        isPro: true,
+        provider: provider || 'google',
+        university: university || 'Universitas Indonesia',
+        major: major || 'Teknik Informatika'
+      };
+      users.push(user);
+    }
+
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role || 'user' }, JWT_SECRET, { expiresIn: '30d' });
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role || 'user',
+        plan: user.plan || 'Gratis',
+        isPro: true,
+        provider: user.provider || provider || 'google'
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error saat login' });
+  }
+};
+
 export const getMe = (req: Request, res: Response) => {
   res.json({ user: (req as any).user });
 };

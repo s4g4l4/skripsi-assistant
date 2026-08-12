@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import BidangIlmuSelector from '../components/BidangIlmuSelector';
+import AdminPanelModal from '../components/AdminPanelModal';
+import { isCampusEmail } from '../utils/accessControl';
 
 export default function SettingsPage() {
   const [userInfo, setUserInfo] = useState(() => {
@@ -34,6 +36,7 @@ export default function SettingsPage() {
   });
 
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'apikeys' | 'security'>('profile');
 
   // Custom API Keys & Multi-Engine Choice
@@ -42,6 +45,16 @@ export default function SettingsPage() {
       const saved = localStorage.getItem('custom_api_keys');
       return saved ? JSON.parse(saved) : {
         selectedEngine: 'multi_synergy',
+        nvidiaApiKey: '',
+        openrouterApiKey: '',
+        openAlexApiKey: '',
+        agriBrainEndpoint: 'http://localhost:8000/sse',
+        agriBrainEnabled: true,
+        leafEnginesEndpoint: 'https://api.leafengines.mcp/v1/sse',
+        leafEnginesApiKey: '',
+        leafEnginesEnabled: true,
+        agricultureMcpEndpoint: 'http://localhost:8080/mcp',
+        agricultureMcpEnabled: true,
         groqApiKey: '',
         deepseekApiKey: '',
         prismApiKey: '',
@@ -51,6 +64,16 @@ export default function SettingsPage() {
     } catch (e) {
       return { 
         selectedEngine: 'multi_synergy',
+        nvidiaApiKey: '',
+        openrouterApiKey: '',
+        openAlexApiKey: '',
+        agriBrainEndpoint: 'http://localhost:8000/sse',
+        agriBrainEnabled: true,
+        leafEnginesEndpoint: 'https://api.leafengines.mcp/v1/sse',
+        leafEnginesApiKey: '',
+        leafEnginesEnabled: true,
+        agricultureMcpEndpoint: 'http://localhost:8080/mcp',
+        agricultureMcpEnabled: true,
         groqApiKey: '', 
         deepseekApiKey: '', 
         prismApiKey: '',
@@ -110,13 +133,30 @@ export default function SettingsPage() {
               {userInfo.name}
             </h3>
             <p className="text-xs text-emerald-200 mt-0.5">{userInfo.email}</p>
-            <div className="mt-3 pt-3 border-t border-emerald-800/50 flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-300 flex items-center gap-1">
-                ⭐ {userInfo.email === 'febricase@gmail.com' ? 'Akses Admin' : 'Akses Fitur Penuh'}
-              </span>
-              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full">
-                Aktif
-              </span>
+            <div className="mt-3 pt-3 border-t border-emerald-800/50 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-amber-300 flex items-center gap-1">
+                  ⭐ {
+                    userInfo.email === 'febricase@gmail.com' || userInfo.role === 'admin'
+                      ? 'Akses Admin'
+                      : isCampusEmail(userInfo.email) || userInfo.accessStatus === 'unlimited'
+                      ? 'Akses Mail Kampus (Gratis Selamanya)'
+                      : 'Akses Fitur Penuh (Gratis 7 Hari)'
+                  }
+                </span>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full">
+                  Aktif
+                </span>
+              </div>
+              {(userInfo.email === 'febricase@gmail.com' || userInfo.role === 'admin') && (
+                <button
+                  type="button"
+                  onClick={() => setIsAdminModalOpen(true)}
+                  className="w-full mt-1 py-2 px-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <ShieldCheck className="w-4 h-4" /> Buka Panel Kelola User Admin
+                </button>
+              )}
             </div>
           </div>
 
@@ -299,6 +339,11 @@ export default function SettingsPage() {
                   className="w-full px-3 py-2 text-xs bg-slate-800 border border-slate-700 text-white font-bold rounded-xl outline-none focus:ring-2 focus:ring-emerald-400"
                 >
                   <option value="multi_synergy">✨ Synergy Multi-AI (Gunakan Semua Engine Sesuai Spesialisasi)</option>
+                  <option value="nvidia">🟢 NVIDIA NIM (DeepSeek-R1 / Llama-3.3 - 1000 Free Credits Gratis)</option>
+                  <option value="openrouter">🪐 OpenRouter AI (20+ Model Gratis / DeepSeek / Llama Gratis)</option>
+                  <option value="agribrain">🌾 AgriBrain MCP Server (Agronomic AI - Open Data Auto-Connect)</option>
+                  <option value="leafengines">🍃 LeafEngines Agricultural MCP (Soil, Crops & Satellite AI - Free Tier)</option>
+                  <option value="openalex">📚 OpenAlex Index (Open Science Index & Polite Pool API - 100% Free)</option>
                   <option value="groq">⚡ Groq Cloud (Llama-3 / Mixtral - Ultra Fast)</option>
                   <option value="deepseek">🧠 DeepSeek-R1 / V3 (Deep Reasoning & Analysis)</option>
                   <option value="prism">🔮 Prism by OpenAI (GPT-4o Academic Writer)</option>
@@ -306,17 +351,227 @@ export default function SettingsPage() {
                   <option value="gemini">♊ Google Gemini 2.5 Flash (Standard Bawaan Sistem)</option>
                 </select>
                 <p className="text-[11px] text-slate-300 leading-tight pt-1">
-                  *Dengan pilihan <strong>Synergy Multi-AI</strong>, sistem secara otomatis mengombinasikan kekuatan tata bahasa GKS-Write, kecerdasan DeepSeek, sintesis Prism, kecepatan Groq, dan presisi Gemini.
+                  *Dengan pilihan <strong>Synergy Multi-AI</strong>, sistem secara otomatis mengombinasikan kekuatan OpenAlex, tata bahasa GKS-Write, NVIDIA NIM, OpenRouter, AgriBrain MCP, LeafEngines MCP, kecerdasan DeepSeek, sintesis Prism, kecepatan Groq, dan presisi Gemini.
+                </p>
+              </div>
+
+              {/* Free Provider Announcement Banner */}
+              <div className="p-3.5 bg-gradient-to-r from-emerald-950 via-slate-900 to-indigo-950 border border-emerald-500/30 rounded-2xl text-xs text-slate-200 space-y-1.5">
+                <div className="flex items-center gap-2 font-extrabold text-emerald-400">
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  <span>Integrasi AI, Server MCP Pertanian & API Riset Akademik Gratis</span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  <strong>AgriBrain MCP</strong>, <strong>LeafEngines MCP</strong>, <strong>Agriculture Open MCP</strong>, <strong>NVIDIA NIM</strong>, <strong>OpenRouter</strong>, dan <strong>OpenAlex</strong> terhubung gratis ke server tanpa biaya. Untuk MCP Server, sistem terhubung langsung via Open Data SSE/Protocol.
                 </p>
               </div>
 
               {/* API Key Form Fields & Links */}
               <div className="space-y-4 pt-1">
 
-                {/* 1. Groq Cloud */}
+                {/* 1. NVIDIA NIM */}
+                <div className="p-3.5 bg-emerald-950/10 border border-emerald-500/30 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                    <span className="flex items-center gap-1.5 font-extrabold text-slate-900">
+                      🟢 NVIDIA NIM (build.nvidia.com)
+                      <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-300">100% GRATIS (1,000 Credits)</span>
+                    </span>
+                    <a 
+                      href="https://build.nvidia.com/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-emerald-700 hover:text-emerald-800 hover:underline font-extrabold flex items-center gap-1 bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-300 shadow-xs"
+                    >
+                      Dapatkan Free Key NVIDIA <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <input
+                    type="password"
+                    value={customApiKeys.nvidiaApiKey || ''}
+                    onChange={(e) => setCustomApiKeys({ ...customApiKeys, nvidiaApiKey: e.target.value })}
+                    placeholder="nvapi-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg font-mono outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <p className="text-[10px] text-slate-600">
+                    Inference Microservices resmi dari NVIDIA. Gratis 1.000 credits untuk model DeepSeek-R1, Llama 3.3 70B, Llama 3.1 405B, & Mistral. URL: <code className="text-slate-800 font-mono">https://build.nvidia.com/</code>
+                  </p>
+                </div>
+
+                {/* 2. OpenRouter */}
+                <div className="p-3.5 bg-indigo-950/10 border border-indigo-500/30 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                    <span className="flex items-center gap-1.5 font-extrabold text-slate-900">
+                      🪐 OpenRouter AI
+                      <span className="text-[10px] font-black bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-300">100% GRATIS (20+ Free Models)</span>
+                    </span>
+                    <a 
+                      href="https://openrouter.ai/keys" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-indigo-700 hover:text-indigo-800 hover:underline font-extrabold flex items-center gap-1 bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-300 shadow-xs"
+                    >
+                      Dapatkan Free Key OpenRouter <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <input
+                    type="password"
+                    value={customApiKeys.openrouterApiKey || ''}
+                    onChange={(e) => setCustomApiKeys({ ...customApiKeys, openrouterApiKey: e.target.value })}
+                    placeholder="sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg font-mono outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <p className="text-[10px] text-slate-600">
+                    Akses puluhan model gratis (Llama 3.3 70B Free, DeepSeek R1 Free, Qwen 2.5 Free, Gemini 2.0 Flash Free). URL: <code className="text-slate-800 font-mono">https://openrouter.ai/keys</code>
+                  </p>
+                </div>
+
+                {/* 3. OpenAlex REST API */}
+                <div className="p-3.5 bg-teal-950/10 border border-teal-500/30 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                    <span className="flex items-center gap-1.5 font-extrabold text-slate-900">
+                      📚 OpenAlex Open Science Index API
+                      <span className="text-[10px] font-black bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full border border-teal-300">100% GRATIS (Open Index)</span>
+                    </span>
+                    <a 
+                      href="https://openalex.org/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-teal-800 hover:text-teal-900 hover:underline font-extrabold flex items-center gap-1 bg-teal-100 px-2.5 py-1 rounded-lg border border-teal-300 shadow-xs"
+                    >
+                      Buka OpenAlex API <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <input
+                    type="text"
+                    value={customApiKeys.openAlexApiKey || ''}
+                    onChange={(e) => setCustomApiKeys({ ...customApiKeys, openAlexApiKey: e.target.value })}
+                    placeholder="email_atau_token_openalex@kampus.ac.id"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg font-mono outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                  <p className="text-[10px] text-slate-600">
+                    Indeks sains terbuka terbesar dunia (karya ilmiah, pengarang, & institusi). Memasukkan email/key memberikan akses "Polite Pool" prioritas. URL: <code className="text-slate-800 font-mono">https://openalex.org/</code>
+                  </p>
+                </div>
+
+                {/* 5. AgriBrain Agronomic Intelligence MCP Server */}
+                <div className="p-3.5 bg-green-950/10 border border-green-500/30 rounded-xl space-y-2.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                    <span className="flex items-center gap-1.5 font-extrabold text-slate-900">
+                      🌾 AgriBrain MCP Server (Agri-Intelligence)
+                      <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-300">🟢 TERHUBUNG (Open Data / Tanpa Key)</span>
+                    </span>
+                    <a 
+                      href="https://github.com/VasileiosTs/agribrain" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-green-800 hover:text-green-900 hover:underline font-extrabold flex items-center gap-1 bg-green-100 px-2.5 py-1 rounded-lg border border-green-300 shadow-xs"
+                    >
+                      Buka Repo AgriBrain <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-extrabold text-slate-700 block">URL Endpoint Server MCP (SSE / Local Host):</label>
+                    <input
+                      type="text"
+                      value={customApiKeys.agriBrainEndpoint || 'http://localhost:8000/sse'}
+                      onChange={(e) => setCustomApiKeys({ ...customApiKeys, agriBrainEndpoint: e.target.value })}
+                      placeholder="http://localhost:8000/sse"
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg font-mono outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  </div>
+                  <div className="p-2.5 bg-green-50 border border-green-200 rounded-lg text-[10px] text-slate-700 leading-relaxed space-y-1">
+                    <p className="font-bold text-green-900">💡 Cara Menghubungkan AgriBrain ke Web ini (Tanpa API Key):</p>
+                    <p>
+                      <strong>1. Secara Otomatis (Default Web):</strong> Sistem menggunakan Open Data default untuk kalkulasi evapotranspirasi ($ET_0$), tanah, & Growing Degree Days.<br/>
+                      <strong>2. Jika Menjalankan Server Lokal (npx / Docker):</strong> Jalankan <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-800 font-mono">npx agribrain-mcp-server</code> di terminal Anda, lalu pastikan URL endpoint di atas mengarah ke server Anda (contoh: <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-800 font-mono">http://localhost:8000/sse</code>).
+                    </p>
+                  </div>
+                </div>
+
+                {/* 6. LeafEngines Agricultural MCP Server */}
+                <div className="p-3.5 bg-lime-950/10 border border-lime-500/30 rounded-xl space-y-2.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                    <span className="flex items-center gap-1.5 font-extrabold text-slate-900">
+                      🍃 LeafEngines Agricultural MCP & QGIS
+                      <span className="text-[10px] font-black bg-lime-100 text-lime-800 px-2 py-0.5 rounded-full border border-lime-300">🟢 TERHUBUNG (Free MCP Protocol)</span>
+                    </span>
+                    <a 
+                      href="https://github.com/QWarranto/leafengines-claude-mcp" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-lime-800 hover:text-lime-900 hover:underline font-extrabold flex items-center gap-1 bg-lime-100 px-2.5 py-1 rounded-lg border border-lime-300 shadow-xs"
+                    >
+                      Buka LeafEngines <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-extrabold text-slate-700 block">URL Endpoint SSE Server MCP:</label>
+                      <input
+                        type="text"
+                        value={customApiKeys.leafEnginesEndpoint || 'https://api.leafengines.mcp/v1/sse'}
+                        onChange={(e) => setCustomApiKeys({ ...customApiKeys, leafEnginesEndpoint: e.target.value })}
+                        placeholder="https://api.leafengines.mcp/v1/sse"
+                        className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg font-mono outline-none focus:ring-2 focus:ring-lime-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-extrabold text-slate-700 block">Test Key / Token (Opsional):</label>
+                      <input
+                        type="password"
+                        value={customApiKeys.leafEnginesApiKey || ''}
+                        onChange={(e) => setCustomApiKeys({ ...customApiKeys, leafEnginesApiKey: e.target.value })}
+                        placeholder="Free Tier Test Key (Opsional)"
+                        className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg font-mono outline-none focus:ring-2 focus:ring-lime-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="p-2.5 bg-lime-50 border border-lime-200 rounded-lg text-[10px] text-slate-700 leading-relaxed space-y-1">
+                    <p className="font-bold text-lime-900">💡 Cara Koneksi LeafEngines MCP & QGIS Plugin:</p>
+                    <p>
+                      Terhubung langsung menggunakan protokol MCP untuk data tanah USDA, prediksi hasil panen, dan analisis citra satelit. Anda dapat memasukkan test key gratis jika ingin mempercepat rate-limit.
+                    </p>
+                  </div>
+                </div>
+
+                {/* 7. Agriculture MCP Server */}
+                <div className="p-3.5 bg-emerald-950/10 border border-emerald-500/30 rounded-xl space-y-2.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                    <span className="flex items-center gap-1.5 font-extrabold text-slate-900">
+                      🚜 Agriculture Open MCP Protocol
+                      <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-300">🟢 TERHUBUNG (Open Standard)</span>
+                    </span>
+                    <a 
+                      href="https://mcp.so" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-emerald-800 hover:text-emerald-900 hover:underline font-extrabold flex items-center gap-1 bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-300 shadow-xs"
+                    >
+                      Buka MCP Server Hub <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-extrabold text-slate-700 block">URL Protocol Endpoint / Bridge:</label>
+                    <input
+                      type="text"
+                      value={customApiKeys.agricultureMcpEndpoint || 'http://localhost:8080/mcp'}
+                      onChange={(e) => setCustomApiKeys({ ...customApiKeys, agricultureMcpEndpoint: e.target.value })}
+                      placeholder="http://localhost:8080/mcp"
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg font-mono outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-[10px] text-slate-700 leading-relaxed space-y-1">
+                    <p className="font-bold text-emerald-900">💡 Cara Kerja Agriculture Open MCP Protocol:</p>
+                    <p>
+                      Mendukung riset Pertanian, Agribisnis, Teknik Pertanian, & Teknologi Pangan secara otomatis melalui komunikasi protokol standar MCP antara AI Agent dan server pertanian.
+                    </p>
+                  </div>
+                </div>
+
+                {/* 4. Groq Cloud */}
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                    <span className="flex items-center gap-1.5">⚡ Groq Cloud API Key</span>
+                    <span className="flex items-center gap-1.5">⚡ Groq Cloud API Key <span className="text-[9px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-bold">GRATIS</span></span>
                     <a 
                       href="https://console.groq.com/keys" 
                       target="_blank" 
@@ -336,10 +591,10 @@ export default function SettingsPage() {
                   <p className="text-[10px] text-slate-500">URL Resmi: <code className="text-slate-700 font-mono">https://console.groq.com/keys</code></p>
                 </div>
 
-                {/* 2. DeepSeek AI */}
+                {/* 5. DeepSeek AI */}
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                    <span className="flex items-center gap-1.5">🧠 DeepSeek AI API Key</span>
+                    <span className="flex items-center gap-1.5">🧠 DeepSeek AI API Key <span className="text-[9px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-bold">GRATIS TRIAL</span></span>
                     <a 
                       href="https://platform.deepseek.com/api_keys" 
                       target="_blank" 
@@ -359,7 +614,7 @@ export default function SettingsPage() {
                   <p className="text-[10px] text-slate-500">URL Resmi: <code className="text-slate-700 font-mono">https://platform.deepseek.com/api_keys</code></p>
                 </div>
 
-                {/* 3. Prism by OpenAI */}
+                {/* 6. Prism by OpenAI */}
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-bold text-slate-800">
                     <span className="flex items-center gap-1.5">🔮 Prism / OpenAI API Key</span>
@@ -382,7 +637,7 @@ export default function SettingsPage() {
                   <p className="text-[10px] text-slate-500">URL Resmi: <code className="text-slate-700 font-mono">https://platform.openai.com/api-keys</code></p>
                 </div>
 
-                {/* 4. GKS-Write */}
+                {/* 7. GKS-Write */}
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-bold text-slate-800">
                     <span className="flex items-center gap-1.5">✒️ GKS-Write Academic Key</span>
@@ -405,10 +660,10 @@ export default function SettingsPage() {
                   <p className="text-[10px] text-slate-500">URL Resmi: <code className="text-slate-700 font-mono">https://gkswrite.com/</code></p>
                 </div>
 
-                {/* 5. Google Gemini AI */}
+                {/* 8. Google Gemini AI */}
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                    <span className="flex items-center gap-1.5">♊ Google Gemini API Key</span>
+                    <span className="flex items-center gap-1.5">♊ Google Gemini API Key <span className="text-[9px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-bold">GRATIS</span></span>
                     <a 
                       href="https://aistudio.google.com/app/apikey" 
                       target="_blank" 
@@ -486,6 +741,11 @@ export default function SettingsPage() {
         </div>
 
       </div>
+
+      <AdminPanelModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+      />
     </div>
   );
 }

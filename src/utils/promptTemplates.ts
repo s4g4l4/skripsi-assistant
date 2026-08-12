@@ -295,5 +295,47 @@ export const PROMPT_TEMPLATES = {
         "Referensi 2 yang dikutip dalam dokumen ini"
       ]
     }
+  `,
+
+  ANALYZE_GUIDEBOOK: (guidebookTitle: string, rawText: string) => `
+    Anda adalah "Dukun Skripsi AI", pakar penganalisis Buku Panduan / Pedoman Penulisan Skripsi, Tesis, Disertasi, dan Jurnal Ilmiah dari Perguruan Tinggi Indonesia.
+    Analisis teks Buku Panduan berikut yang berhasil diekstrak dari dokumen PDF/DOCX:
+    
+    Judul Dokumen: "${guidebookTitle}"
+    Isi Teks Ekstraksi Dokumen:
+    "${rawText.substring(0, 12000)}"
+
+    Tugas Anda:
+    Ekstrak seluruh aturan format selingkung secara 100% presisi dan tanpa kesalahan:
+    1. Nama Universitas / Perguruan Tinggi yang menerbitkan panduan (jika terdeteksi).
+    2. Jenis Huruf (Font) & Ukuran (misal: Times New Roman 12pt, Arial 11pt, dll).
+    3. Spasi Baris (misal: 1.5 spasi, 2.0 spasi, 1.0 spasi tunggal untuk abstrak/tabel).
+    4. Batas Margin (Top/Atas, Left/Kiri, Bottom/Bawah, Right/Kanan dalam cm).
+    5. Penomoran Halaman (Posisi nomor halaman biasa vs posisi nomor halaman awal bab).
+    6. Aturan Sampul/Cover (Ukuran logo, susunan judul, format NIM/NPM).
+    7. Gaya Sitasi & Daftar Pustaka (APA 7th Edition, IEEE, Harvard, MLA, dll).
+    8. Rangkuman aturan penting lainnya (seperti aturan penulisan tabel, gambar, abstrak bilingual, dll).
+
+    Format output HANYA dalam bentuk JSON valid dengan struktur:
+    {
+      "university": "Nama Universitas / Lembaga",
+      "font": "Times New Roman",
+      "fontSize": "12pt",
+      "spacing": "1.5 Spasi Ganda",
+      "margins": {
+        "top": "4 cm",
+        "left": "4 cm",
+        "bottom": "3 cm",
+        "right": "3 cm"
+      },
+      "pageNumberPos": "Kanan Atas (Bawah Tengah untuk Awal Bab)",
+      "coverFormat": "Aturan lengkap format sampul...",
+      "citationStyle": "APA 7th Edition / IEEE",
+      "importantRules": [
+        "Aturan 1...",
+        "Aturan 2..."
+      ],
+      "summary": "Ringkasan kesimpulan panduan..."
+    }
   `
 };

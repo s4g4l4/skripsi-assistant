@@ -2,8 +2,8 @@ import React from 'react';
 import { Navbar, Footer } from '../components/Layout';
 import { HeroSection } from '../components/HeroSection';
 import { MainFeatures } from '../components/MainFeatures';
-import { FeaturesGrid, InteractiveDemo } from '../components/DetailsSection';
-import { ComparisonTable, Testimonials, FAQ } from '../components/ComparisonFAQ';
+import { InteractiveDemo } from '../components/DetailsSection';
+import { FAQ } from '../components/ComparisonFAQ';
 
 export default function LandingPage() {
   return (
@@ -11,12 +11,10 @@ export default function LandingPage() {
       <Navbar />
       <HeroSection />
       <MainFeatures />
-      <FeaturesGrid />
       <InteractiveDemo />
-      <ComparisonTable />
-      <Testimonials />
       <FAQ />
       <Footer />
     </div>
   );
 }
+

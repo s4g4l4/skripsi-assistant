@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Eye, EyeOff, Mail, Lock, Wand2, LogIn } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Wand2, LogIn, ShieldAlert } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import SocialAuthButtons from '../components/SocialAuthButtons';
+import { registerOrUpdateUserAccess, FREE_TRIAL_HOURS, FREE_TRIAL_MS, isCampusEmail, ADMIN_EMAIL } from '../utils/accessControl';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -45,16 +47,49 @@ export default function LoginPage() {
       });
 
       const data = await response.json();
+      const targetEmail = formData.email;
+      const isCampus = isCampusEmail(targetEmail);
+      const now = Date.now();
+      const isAdmin = targetEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+      const userPayload = {
+        id: data.user?.id || `user-${now}`,
+        name: data.user?.name || targetEmail.split('@')[0],
+        email: targetEmail,
+        role: isAdmin ? ('admin' as const) : ('user' as const),
+        trialStartedAt: now,
+        trialDurationHours: isAdmin || isCampus ? 999999 : FREE_TRIAL_HOURS,
+        accessGrantedUntil: isAdmin || isCampus ? (now + 999999 * 3600 * 1000) : (now + FREE_TRIAL_MS),
+        accessStatus: isAdmin || isCampus ? ('unlimited' as const) : ('active' as const)
+      };
+
       if (response.ok && data.token) {
         localStorage.setItem('auth_token', data.token);
-        localStorage.setItem('user_info', JSON.stringify(data.user));
+        localStorage.setItem('user_info', JSON.stringify(userPayload));
+        registerOrUpdateUserAccess(userPayload);
         navigate('/dashboard');
       } else {
         setLoginError(data.error || 'Login gagal. Periksa kembali email dan password.');
       }
     } catch (err) {
       console.warn('API error, proceeding to dashboard locally:', err);
-      localStorage.setItem('user_info', JSON.stringify({ email: formData.email, name: formData.email.split('@')[0] }));
+      const targetEmail = formData.email;
+      const isCampus = isCampusEmail(targetEmail);
+      const now = Date.now();
+      const isAdmin = targetEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+      const userPayload = {
+        id: `user-${now}`,
+        name: targetEmail.split('@')[0],
+        email: targetEmail,
+        role: isAdmin ? ('admin' as const) : ('user' as const),
+        trialStartedAt: now,
+        trialDurationHours: isAdmin || isCampus ? 999999 : FREE_TRIAL_HOURS,
+        accessGrantedUntil: isAdmin || isCampus ? (now + 999999 * 3600 * 1000) : (now + FREE_TRIAL_MS),
+        accessStatus: isAdmin || isCampus ? ('unlimited' as const) : ('active' as const)
+      };
+      localStorage.setItem('user_info', JSON.stringify(userPayload));
+      registerOrUpdateUserAccess(userPayload);
       navigate('/dashboard');
     } finally {
       setIsSubmitting(false);
@@ -89,16 +124,17 @@ export default function LoginPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10"
+        className="mt-6 sm:mx-auto sm:w-full sm:max-w-md relative z-10"
       >
-        <div className="bg-white py-8 px-4 shadow-xl border border-slate-100 sm:rounded-3xl sm:px-10">
+        <div className="bg-white py-8 px-4 shadow-xl border border-slate-100 sm:rounded-3xl sm:px-10 space-y-6">
           {loginError && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-medium">
-              ⚠️ {loginError}
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-medium flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 shrink-0" />
+              <span>{loginError}</span>
             </div>
           )}
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1">Email</label>
               <div className="relative">
@@ -127,12 +163,12 @@ export default function LoginPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <input id="remember-me" name="remember-me" type="checkbox" className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded" />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-700">
+                <label htmlFor="remember-me" className="ml-2 block text-xs text-slate-700">
                   Ingat saya
                 </label>
               </div>
 
-              <div className="text-sm">
+              <div className="text-xs">
                 <a href="#" className="font-bold text-emerald-600 hover:text-emerald-500">
                   Lupa password?
                 </a>
@@ -143,37 +179,12 @@ export default function LoginPage() {
               <button 
                 type="submit" 
                 disabled={isSubmitting}
-                className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors disabled:opacity-50"
+                className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors disabled:opacity-50"
               >
-                <LogIn className="w-5 h-5" /> {isSubmitting ? 'Memverifikasi...' : 'Masuk ke Dashboard'}
+                <LogIn className="w-5 h-5" /> {isSubmitting ? 'Memverifikasi...' : 'Masuk dengan Email & Password'}
               </button>
             </div>
           </form>
-          
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-slate-500">
-                  Atau masuk dengan
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <button className="w-full flex justify-center items-center gap-3 py-3 px-4 border border-slate-300 rounded-xl shadow-sm bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                </svg>
-                Google
-              </button>
-            </div>
-          </div>
         </div>
       </motion.div>
     </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Wand2, LayoutDashboard, PlusCircle, FileText, Edit3, Sparkles, 
-  Layers, Presentation, MessageSquare, Database, History, 
+  Layers, Presentation, MessageSquare, Database, History, ArrowRight,
   Settings, LogOut, Bell, Search, Menu, X, ChevronRight, Upload, PlayCircle, Lightbulb, BookOpen, Users, Clock, ShieldCheck, Trash2
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -270,6 +270,105 @@ export default function DashboardPage() {
                   <p className="text-sm font-medium text-slate-500">Dokumen Tersimpan</p>
                   <p className="text-2xl font-black text-slate-900">{projectsList.length > 0 ? projectsList.length * 7 : 0}</p>
                 </div>
+              </div>
+            </div>
+
+            {/* 5-COLOR QUICK AI TOOLS GRID */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-emerald-600" /> Fitur Pintar AI (5-Warna) & 44 Generator
+                </h2>
+                <Link to="/ai-tools" className="text-xs font-extrabold text-emerald-600 hover:text-emerald-700 underline flex items-center gap-1">
+                  <span>Lihat Semua 44 Tools AI</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+
+              {/* Banner 44 Tools */}
+              <Link 
+                to="/ai-tools" 
+                className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-5 rounded-2xl border border-indigo-800/60 shadow-lg text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group hover:border-emerald-500 transition-all"
+              >
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-wider">
+                    <Wand2 className="w-3 h-3" />
+                    <span>Lengkap 44 AI Generators</span>
+                  </div>
+                  <h3 className="text-lg font-black text-white group-hover:text-emerald-300 transition-colors">
+                    Pusat Generator AI Skripsi & Riset Akademis
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    Diagram Kerangka Berpikir, Generator Hipotesis, Target Riset, AI to Human, Kalkulator Sampel, Pedoman Wawancara, dll.
+                  </p>
+                </div>
+
+                <span className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs rounded-xl transition-all shrink-0 flex items-center gap-2 shadow-md">
+                  <span>Buka 44 Tools AI</span>
+                  <ArrowRight className="w-4 h-4" />
+                </span>
+              </Link>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* 🔵 Cari Jurnal SINTA / Scopus */}
+                <a 
+                  href="/#cari-jurnal" 
+                  className="bg-blue-600 hover:bg-blue-700 text-white p-5 rounded-2xl shadow-sm transition-all space-y-3 block group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center font-bold text-lg">🔵</span>
+                    <span className="text-[10px] font-extrabold bg-white/20 px-2 py-0.5 rounded-full uppercase">Biru</span>
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base leading-snug group-hover:underline">Cari Jurnal Mudah</h3>
+                    <p className="text-xs text-blue-100 mt-1">Rekomendasi jurnal SINTA & Scopus sesuai topik.</p>
+                  </div>
+                </a>
+
+                {/* 🔵 AI Document Checker */}
+                <a 
+                  href="/#document-checker" 
+                  className="bg-slate-900 hover:bg-slate-800 text-white p-5 rounded-2xl border border-slate-800 shadow-sm transition-all space-y-3 block group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="w-10 h-10 bg-blue-500/20 text-blue-400 rounded-xl flex items-center justify-center font-bold text-lg">📋</span>
+                    <span className="text-[10px] font-extrabold bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full uppercase">Biru</span>
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base leading-snug text-white group-hover:underline">AI Document Checker</h3>
+                    <p className="text-xs text-slate-400 mt-1">Cek PUEBI, struktur, dan estimasi Turnitin.</p>
+                  </div>
+                </a>
+
+                {/* 🟠 Smart Outline Generator */}
+                <a 
+                  href="/#outline-generator" 
+                  className="bg-orange-500 hover:bg-orange-600 text-white p-5 rounded-2xl shadow-sm transition-all space-y-3 block group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center font-bold text-lg">🟠</span>
+                    <span className="text-[10px] font-extrabold bg-white/20 px-2 py-0.5 rounded-full uppercase">Orange</span>
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base leading-snug group-hover:underline">Smart Outline Generator</h3>
+                    <p className="text-xs text-orange-100 mt-1">Susun kerangka Bab I-V otomatis.</p>
+                  </div>
+                </a>
+
+                {/* 🟡 Citation Helper */}
+                <Link 
+                  to="/citation-manager" 
+                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 p-5 rounded-2xl shadow-sm transition-all space-y-3 block group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="w-10 h-10 bg-slate-950/20 rounded-xl flex items-center justify-center font-bold text-lg">🟡</span>
+                    <span className="text-[10px] font-extrabold bg-slate-950/20 px-2 py-0.5 rounded-full uppercase">Kuning</span>
+                  </div>
+                  <div>
+                    <h3 className="font-black text-base leading-snug group-hover:underline">Citation Helper</h3>
+                    <p className="text-xs text-amber-950 font-medium mt-1">Format APA 7th & IEEE instan.</p>
+                  </div>
+                </Link>
               </div>
             </div>
 

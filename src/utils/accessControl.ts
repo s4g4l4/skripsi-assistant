@@ -12,7 +12,17 @@ export interface UserAccessInfo {
 export const ADMIN_EMAIL = 'febricase@gmail.com';
 export const ADMIN_NAME = 'Febri (Admin Dukun Skripsi)';
 export const ADMIN_WA_NUMBER = '0895405247374';
-export const ADMIN_WA_LINK = `https://wa.me/62895405247374?text=${encodeURIComponent('Halo Admin Dukun Skripsi, saya ingin memperpanjang akses fitur penuh.')}`;
+export const ADMIN_WA_LINK = `https://wa.me/62895405247374?text=${encodeURIComponent('Halo Admin Dukun Skripsi, masa aktif gratis 7 hari untuk akun saya telah habis. Mohon perpanjang masa pakai akun saya.')}`;
+
+export const FREE_TRIAL_DAYS = 7;
+export const FREE_TRIAL_HOURS = 168; // 7 * 24
+export const FREE_TRIAL_MS = FREE_TRIAL_HOURS * 3600 * 1000;
+
+export function isCampusEmail(email: string): boolean {
+  if (!email) return false;
+  const domain = email.toLowerCase().split('@')[1] || '';
+  return domain.endsWith('.ac.id') || domain.endsWith('.edu') || domain.includes('.ac.id') || domain.includes('.edu');
+}
 
 const DEFAULT_USERS_KEY = 'dukun_skripsi_all_users_v2';
 const CURRENT_USER_KEY = 'user_info';
@@ -26,8 +36,8 @@ export function getStoredUsers(): UserAccessInfo[] {
     email: 'ajengmaharani@gmail.com',
     role: 'user',
     trialStartedAt: now,
-    trialDurationHours: 24,
-    accessGrantedUntil: now + 24 * 3600 * 1000,
+    trialDurationHours: FREE_TRIAL_HOURS,
+    accessGrantedUntil: now + FREE_TRIAL_MS,
     accessStatus: 'active'
   };
 
@@ -35,12 +45,6 @@ export function getStoredUsers(): UserAccessInfo[] {
     const raw = localStorage.getItem(DEFAULT_USERS_KEY);
     if (raw) {
       const users: UserAccessInfo[] = JSON.parse(raw);
-      // Ensure Ajeng Maharani exists in list
-      const hasAjeng = users.some(u => u.name.toLowerCase().includes('ajeng') || u.email.toLowerCase().includes('ajeng'));
-      if (!hasAjeng) {
-        users.push(defaultAjeng);
-        saveStoredUsers(users);
-      }
       return users;
     }
   } catch (e) {
@@ -66,8 +70,8 @@ export function getStoredUsers(): UserAccessInfo[] {
       email: 'analysis@dukunskripsi.id',
       role: 'user',
       trialStartedAt: now,
-      trialDurationHours: 5,
-      accessGrantedUntil: now + 5 * 3600 * 1000,
+      trialDurationHours: FREE_TRIAL_HOURS,
+      accessGrantedUntil: now + FREE_TRIAL_MS,
       accessStatus: 'active'
     }
   ];
@@ -77,6 +81,13 @@ export function getStoredUsers(): UserAccessInfo[] {
 }
 
 export function registerOrUpdateUserAccess(user: UserAccessInfo) {
+  // Check if campus email
+  if (user.email && isCampusEmail(user.email) && user.role !== 'admin') {
+    user.accessStatus = 'unlimited';
+    user.trialDurationHours = 999999;
+    user.accessGrantedUntil = Date.now() + 999999 * 3600 * 1000;
+  }
+
   const allUsers = getStoredUsers();
   const index = allUsers.findIndex(u => u.email.toLowerCase() === user.email.toLowerCase());
   if (index >= 0) {
@@ -121,15 +132,18 @@ export function getCurrentUserAccess(): UserAccessInfo {
 
       // If new logged in regular user without trialStartedAt
       const now = Date.now();
+      const userEmail = parsed.email || 'user@dukunskripsi.id';
+      const isCampus = isCampusEmail(userEmail);
+
       const newAccess: UserAccessInfo = {
         id: parsed.id || `user-${Date.now()}`,
         name: parsed.name || 'User Dukun Skripsi',
-        email: parsed.email || 'user@dukunskripsi.id',
+        email: userEmail,
         role: 'user',
         trialStartedAt: parsed.trialStartedAt || now,
-        trialDurationHours: parsed.trialDurationHours || 5, // Default 5 hours
-        accessGrantedUntil: parsed.accessGrantedUntil || (now + 5 * 3600 * 1000),
-        accessStatus: parsed.accessStatus || 'active'
+        trialDurationHours: isCampus ? 999999 : (parsed.trialDurationHours || FREE_TRIAL_HOURS),
+        accessGrantedUntil: isCampus ? (now + 999999 * 3600 * 1000) : (parsed.accessGrantedUntil || (now + FREE_TRIAL_MS)),
+        accessStatus: isCampus ? 'unlimited' : (parsed.accessStatus || 'active')
       };
 
       // Save into global list
@@ -149,8 +163,8 @@ export function getCurrentUserAccess(): UserAccessInfo {
     email: 'analysis@dukunskripsi.id',
     role: 'user',
     trialStartedAt: now,
-    trialDurationHours: 5,
-    accessGrantedUntil: now + 5 * 3600 * 1000,
+    trialDurationHours: FREE_TRIAL_HOURS,
+    accessGrantedUntil: now + FREE_TRIAL_MS,
     accessStatus: 'active'
   };
 }
@@ -178,19 +192,23 @@ export function getRemainingTimeString(user: UserAccessInfo): string {
     return 'Akses Admin (Akses Penuh)';
   }
 
+  if (isCampusEmail(user.email)) {
+    return 'Mail Kampus (Gratis Selamanya)';
+  }
+
   if (user.accessStatus === 'cancelled') {
     return 'Akses Dibatalkan';
   }
 
   if (user.accessStatus === 'unlimited') {
-    return 'Akses Tanpa Batas (Unlimited)';
+    return 'Gratis Selamanya (Unlimited)';
   }
 
   const now = Date.now();
   const diffMs = user.accessGrantedUntil - now;
 
   if (diffMs <= 0) {
-    return 'Akses Trial Telah Berakhir';
+    return 'Masa Aktif 7 Hari Berakhir';
   }
 
   const totalMinutes = Math.floor(diffMs / (1000 * 60));
@@ -308,11 +326,16 @@ export function revokeUserAccess(userEmail: string) {
 }
 
 export function deleteUserAccount(userEmail: string) {
-  const allUsers = getStoredUsers();
-  if (userEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+  if (!userEmail) return;
+  const targetEmail = userEmail.trim().toLowerCase();
+  
+  if (targetEmail === ADMIN_EMAIL.toLowerCase()) {
+    console.warn('Cannot delete admin account');
     return; // Admin account cannot be deleted
   }
-  const filtered = allUsers.filter(u => u.email.toLowerCase() !== userEmail.toLowerCase());
+
+  const allUsers = getStoredUsers();
+  const filtered = allUsers.filter(u => u.email.trim().toLowerCase() !== targetEmail);
   saveStoredUsers(filtered);
 
   // If deleted user is currently logged in, clear user session
@@ -320,11 +343,14 @@ export function deleteUserAccount(userEmail: string) {
     const raw = localStorage.getItem(CURRENT_USER_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed.email?.toLowerCase() === userEmail.toLowerCase()) {
+      if (parsed.email?.trim().toLowerCase() === targetEmail) {
         localStorage.removeItem(CURRENT_USER_KEY);
       }
     }
   } catch (e) {
     console.error('Error clearing deleted user session:', e);
   }
+
+  // Dispatch custom storage event for instant UI update across components
+  window.dispatchEvent(new Event('storage'));
 }

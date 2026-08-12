@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { 
   UploadCloud, Settings, FileText, Download, CheckCircle2, 
-  Search, Wand2, ArrowRight, History, FileDown, AlertCircle, Building2, MapPin, Tag
+  Search, Wand2, ArrowRight, History, FileDown, AlertCircle, Building2, MapPin, Tag,
+  Scale, BookOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { DEFAULT_UNIVERSITIES, UniversityTemplate } from '../data/universities';
+import IndonesianPageStandards from '../components/IndonesianPageStandards';
 
 const RECENT_FORMATS = [
   { id: 1, name: 'Bab_1_Pendahuluan.docx', date: 'Hari ini, 10:30', status: 'Selesai', univ: 'Universitas Indonesia (UI)' },
@@ -13,6 +15,7 @@ const RECENT_FORMATS = [
 ];
 
 export default function AutoFormatPage() {
+  const [mainTab, setMainTab] = useState<'formatter' | 'standards'>('formatter');
   const [step, setStep] = useState(1);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [searchUniv, setSearchUniv] = useState('');
@@ -59,10 +62,47 @@ export default function AutoFormatPage() {
     }
   };
 
+  const processUploadedDoc = async (file: File) => {
+    setSelectedFile(file);
+    setStep(2);
+
+    if (file.name.toLowerCase().endsWith('.pdf')) {
+      try {
+        const formData = new FormData();
+        formData.append('guidebook', file);
+        const res = await fetch('/api/pdf-chat/parse-guidebook', {
+          method: 'POST',
+          body: formData
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const analysis = data.analysis;
+          if (analysis) {
+            if (analysis.font) setFormatSettings(prev => ({ ...prev, font: analysis.font }));
+            if (analysis.fontSize) setFormatSettings(prev => ({ ...prev, size: analysis.fontSize.replace('pt', '') }));
+            if (analysis.spacing) setFormatSettings(prev => ({ ...prev, spacing: analysis.spacing }));
+            if (analysis.margins) {
+              setFormatSettings(prev => ({
+                ...prev,
+                margin: {
+                  top: analysis.margins.top?.replace(' cm', '') || '4',
+                  bottom: analysis.margins.bottom?.replace(' cm', '') || '3',
+                  left: analysis.margins.left?.replace(' cm', '') || '4',
+                  right: analysis.margins.right?.replace(' cm', '') || '3',
+                }
+              }));
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Auto detection error:', e);
+      }
+    }
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
-      setStep(2);
+      processUploadedDoc(e.target.files[0]);
     }
   };
 
@@ -73,8 +113,7 @@ export default function AutoFormatPage() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setSelectedFile(e.dataTransfer.files[0]);
-      setStep(2);
+      processUploadedDoc(e.dataTransfer.files[0]);
     }
   };
 
@@ -115,10 +154,39 @@ export default function AutoFormatPage() {
             <span className="text-lg font-bold text-slate-900 tracking-tight hidden sm:block">Dukun Skripsi</span>
           </Link>
           <div className="h-6 w-px bg-slate-200 mx-2 hidden sm:block"></div>
-          <h1 className="font-semibold text-slate-700">Auto Format Dokumen</h1>
+          <h1 className="font-semibold text-slate-700">Auto Format & Pedoman Akademik</h1>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+          <button
+            onClick={() => setMainTab('formatter')}
+            className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+              mainTab === 'formatter' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Wand2 className="w-3.5 h-3.5" />
+            <span>Auto Format</span>
+          </button>
+          <button
+            onClick={() => setMainTab('standards')}
+            className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+              mainTab === 'standards' ? 'bg-slate-900 text-emerald-400 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Scale className="w-3.5 h-3.5 text-indigo-500" />
+            <span>Pedoman Halaman RI (SN-Dikti)</span>
+          </button>
         </div>
       </header>
 
+      {mainTab === 'standards' ? (
+        <div className="bg-slate-950 min-h-[calc(100vh-4rem)] p-4 sm:p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto">
+            <IndonesianPageStandards />
+          </div>
+        </div>
+      ) : (
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Main Work Area */}
@@ -478,6 +546,7 @@ export default function AutoFormatPage() {
         </div>
 
       </main>
+      )}
     </div>
   );
 }

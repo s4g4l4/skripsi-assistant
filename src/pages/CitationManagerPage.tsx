@@ -79,6 +79,8 @@ export default function CitationManagerPage() {
   const [formattedBibliography, setFormattedBibliography] = useState<{ id: string; inTextCitation: string; fullReference: string }[]>([]);
   
   const [importStatus, setImportStatus] = useState('');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   const handleExportBib = () => {
     let bibContent = "% Exported from Dukun Skripsi Citation Manager\n\n";

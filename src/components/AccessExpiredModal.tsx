@@ -1,6 +1,6 @@
 import React from 'react';
 import { Lock, MessageSquare, AlertTriangle, ShieldAlert } from 'lucide-react';
-import { ADMIN_WA_NUMBER, ADMIN_WA_LINK } from '../utils/accessControl';
+import { ADMIN_WA_NUMBER } from '../utils/accessControl';
 
 interface AccessExpiredModalProps {
   isOpen: boolean;
@@ -9,6 +9,10 @@ interface AccessExpiredModalProps {
 
 export default function AccessExpiredModal({ isOpen, userEmail }: AccessExpiredModalProps) {
   if (!isOpen) return null;
+
+  const dynamicWaLink = `https://wa.me/62895405247374?text=${encodeURIComponent(
+    `Halo Admin Dukun Skripsi, masa aktif gratis 7 hari untuk akun saya (${userEmail || 'Mahasiswa'}) telah habis. Mohon bantu perpanjang masa pakai akun saya.`
+  )}`;
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4">
@@ -23,11 +27,11 @@ export default function AccessExpiredModal({ isOpen, userEmail }: AccessExpiredM
         </div>
 
         <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 border border-red-200 text-red-700 text-xs font-black rounded-full mb-3 uppercase tracking-wider">
-          <AlertTriangle className="w-3.5 h-3.5" /> Akses Trial Berakhir
+          <AlertTriangle className="w-3.5 h-3.5" /> Masa Gratis 7 Hari Telah Habis
         </span>
 
         <h2 className="text-xl font-black text-slate-900 tracking-tight mb-2">
-          Masa Aktif Akses Telah Habis
+          Masa Aktif Akses Gratis 7 Hari Berakhir
         </h2>
 
         <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left space-y-2 mb-6 text-xs text-slate-700 leading-relaxed">
@@ -36,20 +40,20 @@ export default function AccessExpiredModal({ isOpen, userEmail }: AccessExpiredM
             Pemberitahuan Akses Dukun Skripsi:
           </p>
           <p className="text-slate-600">
-            Akses trial Anda telah berakhir. Silahkan Hubungi Admin dengan Nomor WhatsApp{' '}
+            Masa uji coba gratis 7 hari untuk akun Anda telah berakhir. Silahkan hubungi Admin melalui WhatsApp di nomor{' '}
             <strong className="text-slate-900 bg-amber-100 px-1 py-0.5 rounded font-black">{ADMIN_WA_NUMBER}</strong>{' '}
-            untuk memperpanjang akses penuh.
+            untuk memperpanjang masa pakai akun Anda.
           </p>
           {userEmail && (
             <p className="text-[11px] text-slate-400 border-t border-slate-200 pt-1.5">
-              Email Terdaftar: <span className="font-mono text-slate-600 font-bold">{userEmail}</span>
+              Email Akun Mahasiswa: <span className="font-mono text-slate-700 font-bold">{userEmail}</span>
             </p>
           )}
         </div>
 
         {/* WhatsApp Call to Action Button */}
         <a
-          href={ADMIN_WA_LINK}
+          href={dynamicWaLink}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full py-3.5 px-5 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 group"
@@ -59,7 +63,7 @@ export default function AccessExpiredModal({ isOpen, userEmail }: AccessExpiredM
         </a>
 
         <p className="text-[11px] text-slate-400 mt-3 font-medium">
-          Layanan Pelanggan WhatsApp: {ADMIN_WA_NUMBER}
+          Admin WhatsApp: {ADMIN_WA_NUMBER} (Febri - Dukun Skripsi)
         </p>
       </div>
     </div>

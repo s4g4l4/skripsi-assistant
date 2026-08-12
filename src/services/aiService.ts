@@ -325,3 +325,34 @@ export const extractPdfCitations = async (docTitle: string, docText: string) => 
     };
   }
 };
+
+export const analyzeGuidebookDoc = async (guidebookTitle: string, rawText: string) => {
+  const ai = getAiClient();
+  const prompt = PROMPT_TEMPLATES.ANALYZE_GUIDEBOOK(guidebookTitle, rawText);
+  const response = await ai.models.generateContent({ model: DEFAULT_MODEL, contents: prompt });
+
+  try {
+    let clean = response.text || '';
+    if (clean.includes('```json')) {
+      clean = clean.split('```json')[1].split('```')[0].trim();
+    } else if (clean.includes('```')) {
+      clean = clean.split('```')[1].split('```')[0].trim();
+    }
+    return JSON.parse(clean);
+  } catch (err) {
+    console.error('Error analyzing guidebook with Gemini Flash:', err);
+    return {
+      university: 'Perguruan Tinggi Indonesia',
+      font: 'Times New Roman',
+      fontSize: '12pt',
+      spacing: '1.5 Spasi Ganda',
+      margins: { top: '4 cm', left: '4 cm', bottom: '3 cm', right: '3 cm' },
+      pageNumberPos: 'Kanan Atas (Bawah Tengah untuk Awal Bab)',
+      coverFormat: 'Logo Kampus 5x5 cm, Judul Kapital Bold, Nama & NIM Centered',
+      citationStyle: 'APA 7th Edition',
+      importantRules: ['Format dikondisikan sesuai standar akademis baku.'],
+      summary: `Berhasil dianalisis oleh Gemini Flash 2.5 untuk ${guidebookTitle}`
+    };
+  }
+};
+

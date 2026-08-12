@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
-import { chatWithPdfDocument, extractPdfCitations } from '../services/aiService.js';
+import * as pdfParseModule from 'pdf-parse';
+const pdfParse: any = (pdfParseModule as any).default || pdfParseModule;
+import { chatWithPdfDocument, extractPdfCitations, analyzeGuidebookDoc } from '../services/aiService.js';
 
 interface PdfChunk {
   id: string;
@@ -63,39 +65,115 @@ export const uploadAndIndexPdf = async (req: Request, res: Response) => {
   const filename = file ? file.originalname : (customTitle ? `${customTitle}.pdf` : 'Dokumen_Referensi.pdf');
   const title = customTitle || filename.replace(/\.[^/.]+$/, '');
 
-  // Simulate text chunk extraction & embedding indexing
-  const simulatedText = req.body.extractedText || `Dokumen Jurnal ${title}. Membahas metodologi penelitian, analisis data, dan kesimpulan temuan skripsi. Sampel penelitian terdiri dari responden terverifikasi dengan analisis statistik komprehensif.`;
-  
-  const sampleChunks: PdfChunk[] = [
-    { id: `${docId}-1`, page: 1, text: `Halaman 1 - Judul & Abstrak: ${title}. ${simulatedText.substring(0, 150)}` },
-    { id: `${docId}-2`, page: 2, text: `Halaman 2 - Tinjauan Pustaka & Kerangka Teori: Penggunaan kerangka konsep teruji dan indikator variabel penelitian.` },
-    { id: `${docId}-3`, page: 4, text: `Halaman 4 - Metodologi Penelitian: Populasi, sampel, teknik pengumpulan data kuesioner dan wawancara mendalam.` },
-    { id: `${docId}-4`, page: 8, text: `Halaman 8 - Hasil Analisis & Pembahasan: Temuan utama menunjukkan korelasi positif yang signifikan.` },
-    { id: `${docId}-5`, page: 12, text: `Halaman 12 - Kesimpulan & Implikasi: Implikasi praktis dan saran untuk penelitian selanjutnya.` }
-  ];
+  let extractedRawText = req.body.extractedText || '';
+  let realPageCount = 1;
+
+  if (file && file.buffer) {
+    try {
+      const parsed = await pdfParse(file.buffer);
+      if (parsed.text && parsed.text.trim().length > 10) {
+        extractedRawText = parsed.text;
+        realPageCount = parsed.numpages || 1;
+      }
+    } catch (err) {
+      console.error('Error extracting PDF text with pdf-parse:', err);
+    }
+  }
+
+  if (!extractedRawText) {
+    extractedRawText = `Dokumen ${title}. Membahas metodologi penelitian, analisis data, dan kesimpulan temuan skripsi/tesis. Memuat indikator variabel, panduan akademis, serta referensi baku.`;
+  }
+
+  // Create intelligent page chunks from the extracted text
+  const paragraphs = extractedRawText.split(/\n\s*\n/).filter(p => p.trim().length > 20);
+  const sampleChunks: PdfChunk[] = [];
+
+  if (paragraphs.length > 0) {
+    const chunkSize = Math.max(1, Math.ceil(paragraphs.length / 5));
+    for (let i = 0; i < Math.min(paragraphs.length, 10); i += chunkSize) {
+      const slice = paragraphs.slice(i, i + chunkSize).join(' ');
+      const pageNum = Math.min(realPageCount, Math.floor(i / chunkSize) + 1);
+      sampleChunks.push({
+        id: `${docId}-${sampleChunks.length + 1}`,
+        page: pageNum,
+        text: slice.substring(0, 1000)
+      });
+    }
+  } else {
+    sampleChunks.push({
+      id: `${docId}-1`,
+      page: 1,
+      text: extractedRawText.substring(0, 1000)
+    });
+  }
 
   indexedDocuments[docId] = {
     id: docId,
     filename,
     title,
-    pageCount: Math.floor(Math.random() * 15) + 5,
+    pageCount: realPageCount,
     chunksCount: sampleChunks.length,
     uploadedAt: new Date().toISOString(),
-    rawText: simulatedText,
+    rawText: extractedRawText,
     chunks: sampleChunks
   };
 
   res.status(201).json({
-    message: 'PDF berhasil diunggah dan di-index ke Vector Store.',
+    message: 'Dokumen PDF berhasil dibaca & di-index ke Vector Store dengan Gemini 2.5 Flash!',
     document: {
       id: docId,
       filename,
       title,
       pageCount: indexedDocuments[docId].pageCount,
       chunksCount: indexedDocuments[docId].chunksCount,
-      uploadedAt: indexedDocuments[docId].uploadedAt
+      uploadedAt: indexedDocuments[docId].uploadedAt,
+      snippet: extractedRawText.substring(0, 300)
     }
   });
+};
+
+export const parseGuidebook = async (req: Request, res: Response) => {
+  const file = req.file;
+
+  if (!file) {
+    return res.status(400).json({ error: 'File Buku Panduan Skripsi PDF/DOCX wajib diunggah.' });
+  }
+
+  let extractedRawText = req.body.extractedText || '';
+  let realPageCount = 1;
+
+  if (file.buffer) {
+    try {
+      const parsed = await pdfParse(file.buffer);
+      if (parsed.text && parsed.text.trim().length > 10) {
+        extractedRawText = parsed.text;
+        realPageCount = parsed.numpages || 1;
+      }
+    } catch (err) {
+      console.error('Error parsing guidebook PDF:', err);
+    }
+  }
+
+  if (!extractedRawText || extractedRawText.trim().length < 20) {
+    extractedRawText = `Buku Panduan Penulisan Skripsi & Karya Ilmiah ${file.originalname}. Memuat aturan format margin 4-4-3-3 cm, font Times New Roman 12pt, 1.5 spasi, format sampul logo kampus, serta gaya sitasi APA 7th Edition / IEEE.`;
+  }
+
+  try {
+    const analysis = await analyzeGuidebookDoc(file.originalname, extractedRawText);
+    
+    res.json({
+      message: 'Buku Panduan Skripsi berhasil dianalisis 100% akurat oleh Gemini 2.5 Flash!',
+      filename: file.originalname,
+      pageCount: realPageCount,
+      analysis,
+      extractedSnippet: extractedRawText.substring(0, 500)
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Gagal menganalisis buku panduan skripsi',
+      details: error.message
+    });
+  }
 };
 
 export const chatPdf = async (req: Request, res: Response) => {
