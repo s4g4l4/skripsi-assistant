@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, UserPlus, Mail, Shield, MessageSquare, History, CheckCircle2, 
-  Clock, AlertCircle, FileText, ArrowLeft, Send, Trash2, Check, 
+  Clock, AlertCircle, FileText, ArrowLeft, Send, Trash2, Check, Copy,
   ChevronRight, CornerDownRight, Filter, RefreshCw, Sparkles, BookOpen, UserCheck, GraduationCap
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -117,12 +117,15 @@ export default function CollaborationPage() {
     }
   };
 
+  const [copiedLink, setCopiedLink] = useState(false);
+
   const handleInviteCollaborator = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteEmail) return;
 
     setInviting(true);
     setInviteSuccessMsg('');
+    setCopiedLink(false);
 
     try {
       const res = await fetch('/api/collaboration/invite', {
@@ -139,8 +142,6 @@ export default function CollaborationPage() {
       if (res.ok) {
         const data = await res.json();
         setInviteSuccessMsg(data.message);
-        setInviteEmail('');
-        setInviteName('');
         await fetchAllData();
       }
     } catch {
@@ -148,6 +149,14 @@ export default function CollaborationPage() {
     } finally {
       setInviting(false);
     }
+  };
+
+  const handleCopyInviteLink = (usePublicDomain = true) => {
+    const baseUrl = usePublicDomain ? 'https://skripsi-assistant-jade.vercel.app' : window.location.origin;
+    const inviteUrl = `${baseUrl}/login?email=${encodeURIComponent(inviteEmail)}&project=${projectId}`;
+    navigator.clipboard.writeText(inviteUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 3000);
   };
 
   const handleRemoveCollaborator = async (colId: string) => {
@@ -580,9 +589,39 @@ export default function CollaborationPage() {
               </h3>
 
               {inviteSuccessMsg && (
-                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>{inviteSuccessMsg}</span>
+                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span className="font-bold">{inviteSuccessMsg}</span>
+                  </div>
+
+                  <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-[11px] text-amber-200 space-y-1">
+                    <p className="font-bold flex items-center gap-1 text-amber-300">
+                      ⚠️ Mengapa Muncul Error 403 Google saat Dosen Buka Link?
+                    </p>
+                    <p className="text-[10px] leading-relaxed text-amber-100/90">
+                      Link preview internal AI Studio (<code className="bg-black/30 px-1 py-0.5 rounded">ais-dev-...</code> atau <code className="bg-black/30 px-1 py-0.5 rounded">aistudio.google.com</code>) bersifat privat khusus pemilik akun. Dosen akan terkena <strong>Error 403 Forbidden</strong> jika membuka link preview tersebut.
+                    </p>
+                    <p className="text-[10px] font-bold text-emerald-300 mt-1">
+                      ✅ Solusi: Gunakan Tautan Publik Web Utama di bawah ini:
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleCopyInviteLink(true)}
+                    className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-md"
+                  >
+                    {copiedLink ? (
+                      <>
+                        <Check className="w-4 h-4 text-white" /> Tautan Publik Web Utama Disalin!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" /> Salin Tautan Akses Dosen (Publik Vercel)
+                      </>
+                    )}
+                  </button>
                 </div>
               )}
 
