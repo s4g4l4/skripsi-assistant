@@ -122,6 +122,7 @@ export default function CollaborationPage() {
   const searchParams = new URLSearchParams(window.location.search);
   const isGuestMode = searchParams.get('mode') === 'review' || searchParams.get('guest') === 'true' || searchParams.get('review') === 'true';
   const guestLecturerName = searchParams.get('lecturer') || 'Dr. Ir. Hendra Wijaya, M.T.';
+  const guestLecturerEmail = searchParams.get('email') || 'dosen@univ.ac.id';
   const guestLecturerRole = searchParams.get('role') || 'Dosen Pembimbing Utama';
 
   const [activeTab, setActiveTab] = useState<'roadmap' | 'draft' | 'approvals' | 'comments' | 'collaborators' | 'history'>(
@@ -143,6 +144,13 @@ export default function CollaborationPage() {
   const [lecturerRoleInput, setLecturerRoleInput] = useState('Dosen Pembimbing Utama');
   const [copiedDirectLink, setCopiedDirectLink] = useState(false);
   const [copiedTemplateMsg, setCopiedTemplateMsg] = useState(false);
+
+  // Email Invite State
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteName, setInviteName] = useState('');
+  const [inviteRole, setInviteRole] = useState('Dosen Pembimbing Utama');
+  const [isInviting, setIsInviting] = useState(false);
+  const [inviteSuccessMsg, setInviteSuccessMsg] = useState('');
 
   const [colToDelete, setColToDelete] = useState<Collaborator | null>(null);
 
@@ -293,7 +301,7 @@ export default function CollaborationPage() {
       selectedText: selectedTextForComment,
       content: newCommentText,
       authorName: author,
-      authorEmail: isGuestMode ? 'dosen@univ.ac.id' : 'mahasiswa@dukunskripsi.id',
+      authorEmail: isGuestMode ? guestLecturerEmail : 'mahasiswa@dukunskripsi.id',
       createdAt: new Date().toISOString(),
       resolved: false,
       replies: []
@@ -416,6 +424,53 @@ export default function CollaborationPage() {
       });
     } catch {
       // Handled by local state
+    }
+  };
+
+  const handleInviteCollaboratorEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteEmail || !inviteName) return;
+
+    setIsInviting(true);
+    setInviteSuccessMsg('');
+
+    try {
+      const res = await fetch('/api/collaboration/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId,
+          email: inviteEmail,
+          name: inviteName,
+          role: inviteRole
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        
+        // Update state
+        const updatedCols = [data.collaborator, ...collaborators];
+        setCollaborators(updatedCols);
+        localStorage.setItem(`dukun_skripsi_collabs_${projectId}`, JSON.stringify(updatedCols));
+        
+        // Reset form
+        setInviteEmail('');
+        setInviteName('');
+        setInviteRole('Dosen Pembimbing Utama');
+        
+        if (data.emailSent) {
+          setInviteSuccessMsg(`Berhasil! Email undangan telah dikirim ke ${data.collaborator.email} via Brevo.`);
+        } else {
+          setInviteSuccessMsg(`Berhasil ditambahkan ke daftar, namun email tidak terkirim (API Key Brevo belum dikonfigurasi).`);
+        }
+        
+        setTimeout(() => setInviteSuccessMsg(''), 5000);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsInviting(false);
     }
   };
 
@@ -961,12 +1016,86 @@ export default function CollaborationPage() {
               </div>
             </div>
 
-            {/* Right: Collaborator List */}
-            <div className="lg:col-span-2 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-white">Daftar Dosen & Kolaborator Terhubung</h3>
-                <span className="text-xs text-slate-400">{collaborators.length} Kolaborator</span>
+            {/* Right: Email Invite & Collaborator List */}
+            <div className="lg:col-span-2 space-y-6">
+              
+              {/* Form Undang via Email */}
+              <div className="p-5 rounded-2xl bg-slate-950/50 border border-slate-800 space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Kirim Undangan via Email (Brevo)</h3>
+                    <p className="text-[11px] text-slate-400">Otomatis mengirim tautan akses unik ke email tujuan</p>
+                  </div>
+                </div>
+
+                {inviteSuccessMsg && (
+                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs rounded-lg flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>{inviteSuccessMsg}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleInviteCollaboratorEmail} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-400">Nama Lengkap & Gelar</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={inviteName}
+                      onChange={(e) => setInviteName(e.target.value)}
+                      placeholder="Dr. Hendra Wijaya, M.T."
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-indigo-500 focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-400">Alamat Email</label>
+                    <input 
+                      type="email" 
+                      required
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      placeholder="dosen@kampus.ac.id"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-indigo-500 focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1 md:col-span-2">
+                    <label className="text-xs text-slate-400">Peran</label>
+                    <div className="flex items-center gap-3">
+                      <select 
+                        value={inviteRole}
+                        onChange={(e) => setInviteRole(e.target.value)}
+                        className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-indigo-500 focus:outline-none"
+                      >
+                        <option value="Dosen Pembimbing Utama">Dosen Pembimbing Utama</option>
+                        <option value="Dosen Pembimbing 2">Dosen Pembimbing 2</option>
+                        <option value="Dosen Penguji">Dosen Penguji</option>
+                        <option value="Rekan Mahasiswa">Rekan Mahasiswa / Reviewer</option>
+                      </select>
+                      <button 
+                        type="submit"
+                        disabled={isInviting || !inviteEmail || !inviteName}
+                        className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"
+                      >
+                        {isInviting ? 'Mengirim...' : (
+                          <>
+                            <Send className="w-3.5 h-3.5" /> Kirim Undangan
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </form>
               </div>
+
+              {/* Daftar Kolaborator */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-white">Daftar Dosen & Kolaborator Terhubung</h3>
+                  <span className="text-xs text-slate-400">{collaborators.length} Kolaborator</span>
+                </div>
 
               <div className="space-y-3">
                 {collaborators.map((col) => (
@@ -996,6 +1125,7 @@ export default function CollaborationPage() {
                   </div>
                 ))}
               </div>
+            </div>
             </div>
 
           </div>

@@ -162,7 +162,7 @@ export const getCollaborators = (req: Request, res: Response) => {
   res.json({ projectId, collaborators });
 };
 
-export const inviteCollaborator = (req: Request, res: Response) => {
+export const inviteCollaborator = async (req: Request, res: Response) => {
   const projectId = String(req.body.projectId || 'proj-demo-1');
   const { email, name, role } = req.body;
 
@@ -185,9 +185,59 @@ export const inviteCollaborator = (req: Request, res: Response) => {
 
   projectCollaborators[projectId].push(newCol);
 
+  // Send Email using Brevo API if key is present
+  const brevoApiKey = process.env.BREVO_API_KEY;
+  if (brevoApiKey) {
+    const senderEmail = process.env.BREVO_SENDER_EMAIL || 'noreply@dukunskripsi.id';
+    const appUrl = process.env.APP_URL || 'https://skripsi-assistant-jade.vercel.app';
+    const reviewLink = `${appUrl}/collaboration?mode=review&guest=true&lecturer=${encodeURIComponent(newCol.name)}&email=${encodeURIComponent(email)}&role=${encodeURIComponent(role)}`;
+    
+    try {
+      const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'api-key': brevoApiKey,
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: { name: 'Dukun Skripsi', email: senderEmail },
+          to: [{ email, name: newCol.name }],
+          subject: 'Undangan Peninjauan & Bimbingan Skripsi',
+          htmlContent: `
+            <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px;">
+              <h2 style="color: #0f172a;">Halo ${newCol.name},</h2>
+              <p>Anda telah diundang sebagai <strong>${role}</strong> untuk meninjau dan memberikan bimbingan pada sebuah proyek skripsi.</p>
+              <p>Anda dapat langsung membaca naskah, memberikan catatan (inline feedback), dan menyetujui bab (ACC) secara online tanpa perlu mendaftar atau login.</p>
+              
+              <div style="margin: 32px 0; text-align: center;">
+                <a href="${reviewLink}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                  Buka Portal Bimbingan
+                </a>
+              </div>
+              
+              <p style="font-size: 0.85em; color: #64748b;">Jika tombol di atas tidak berfungsi, Anda dapat menyalin tautan berikut ke browser Anda:</p>
+              <p style="font-size: 0.85em; color: #64748b; word-break: break-all; background-color: #f8fafc; padding: 8px; border-radius: 4px;">${reviewLink}</p>
+              
+              <hr style="border: none; border-top: 1px solid #e2e8f0; margin-top: 32px; margin-bottom: 24px;" />
+              <p style="font-size: 0.75em; color: #94a3b8; text-align: center;">Email ini dikirim secara otomatis oleh platform Dukun Skripsi.</p>
+            </div>
+          `
+        })
+      });
+
+      if (!brevoRes.ok) {
+        console.error('Brevo API Error:', await brevoRes.text());
+      }
+    } catch (err) {
+      console.error('Failed to send email via Brevo:', err);
+    }
+  }
+
   res.status(201).json({
     message: `Undangan kolaborasi berhasil dikirimkan ke ${email} dengan role ${role}.`,
-    collaborator: newCol
+    collaborator: newCol,
+    emailSent: !!brevoApiKey
   });
 };
 
