@@ -122,8 +122,16 @@ export default function PdfChatPage() {
           }
         ]);
       }
-    } catch {
-      alert('Gagal mengunggah dokumen.');
+    } catch (e) {
+      setMessages(prev => [
+        ...prev,
+        {
+          id: `err-${Date.now()}`,
+          sender: 'ai',
+          text: 'Maaf, gagal mengunggah atau memproses dokumen.',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
     } finally {
       setUploading(false);
     }

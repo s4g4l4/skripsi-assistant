@@ -38,6 +38,7 @@ export default function SettingsPage() {
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'apikeys' | 'security'>('profile');
+  const [passwordChanged, setPasswordChanged] = useState(false);
 
   // Custom API Keys & Multi-Engine Choice
   const [customApiKeys, setCustomApiKeys] = useState(() => {
@@ -731,10 +732,13 @@ export default function SettingsPage() {
               </div>
 
               <button
-                onClick={() => alert('Password berhasil diubah!')}
+                onClick={() => {
+                  setPasswordChanged(true);
+                  setTimeout(() => setPasswordChanged(false), 3000);
+                }}
                 className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-colors shadow-xs"
               >
-                Ubah Password
+                {passwordChanged ? 'Berhasil Diubah!' : 'Ubah Password'}
               </button>
             </div>
           )}

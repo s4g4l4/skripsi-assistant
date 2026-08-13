@@ -313,6 +313,7 @@ export default function ThesisRoadmap() {
 
   // Add custom step state
   const [showAddStepModal, setShowAddStepModal] = useState(false);
+  const [stepToDelete, setStepToDelete] = useState<number | null>(null);
   const [newStepTitle, setNewStepTitle] = useState('');
   const [newStepDesc, setNewStepDesc] = useState('');
   const [newStepChecklist, setNewStepChecklist] = useState('');
@@ -440,9 +441,7 @@ export default function ThesisRoadmap() {
   };
 
   const handleDeleteStep = (stepId: number) => {
-    if (confirm("Apakah Anda yakin ingin menghapus langkah ini dari alur skripsi Anda?")) {
-      setSteps(prev => prev.filter(s => s.id !== stepId));
-    }
+    setStepToDelete(stepId);
   };
 
   const handleOpenAiModal = (step: ThesisStep, btnType: string, btnLabel: string) => {
@@ -1160,6 +1159,49 @@ ${contextInputs}
                   className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl"
                 >
                   Tutup Pedoman
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Step Confirmation Modal */}
+      <AnimatePresence>
+        {stepToDelete !== null && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4 shadow-xl"
+            >
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 mx-auto">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div className="text-center space-y-2">
+                <h3 className="font-bold text-lg text-slate-900">Hapus Tahapan Skripsi?</h3>
+                <p className="text-sm text-slate-500">
+                  Apakah Anda yakin ingin menghapus langkah ini dari alur skripsi Anda? Data yang sudah diisi pada tahapan ini akan hilang.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setStepToDelete(null)}
+                  className="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSteps(prev => prev.filter(s => s.id !== stepToDelete));
+                    setStepToDelete(null);
+                  }}
+                  className="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" /> Ya, Hapus
                 </button>
               </div>
             </motion.div>
