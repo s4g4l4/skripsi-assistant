@@ -56,6 +56,8 @@ export const CATEGORIZED_BIDANG_ILMU: CategoryBidangIlmu[] = [
     category: 'Teknik & Rekayasa',
     items: [
       'Teknik Informatika',
+      'Sistem Informasi',
+      'Teknologi Informasi',
       'Rekayasa Perangkat Lunak',
       'Rekayasa Komputer',
       'Kecerdasan Buatan',

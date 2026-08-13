@@ -16,69 +16,17 @@ interface HistoryItem {
   path: string;
 }
 
-const DEFAULT_HISTORY_ITEMS: HistoryItem[] = [
-  {
-    id: 'h-0',
-    type: 'Proposal',
-    title: 'Generasi Otomatis Bab 1-5 (Latar Belakang, Tinjauan Pustaka, Metodologi, Hasil & Pembahasan)',
-    date: 'Hari ini, Baru Saja',
-    status: 'Sukses',
-    summary: 'Pembuatan kerangka proposal & isi lengkap Bab 1-5 berstandar akademik tinggi berhasil diselesaikan.',
-    path: '/editor'
-  },
-  {
-    id: 'h-1',
-    type: 'Olah Data',
-    title: 'Analisis Regresi Linear Berganda - Variabel X1 (Media Sosial) & X2 (Promosi) terhadap Y (Penjualan UMKM)',
-    date: 'Hari ini, 10:24',
-    status: 'Selesai',
-    summary: 'R-Square 0.842, Uji F Sig 0.001, Uji t berpengaruh positif dan signifikan.',
-    path: '/olah-data'
-  },
-  {
-    id: 'h-2',
-    type: 'Citation',
-    title: 'Manajemen Daftar Pustaka Format APA 7th Edition (Sugiyono, Smith, Martin)',
-    date: 'Kemarin, 16:45',
-    status: 'Selesai',
-    summary: 'Daftar pustaka diformat lengkap dengan in-text citation & full reference.',
-    path: '/citation-manager'
-  },
-  {
-    id: 'h-3',
-    type: 'Proposal',
-    title: 'Draft Bab 1-3: Implementasi Machine Learning untuk Prediksi Harga Saham UMKM',
-    date: '04 Agu 2026',
-    status: 'Selesai',
-    summary: 'Latar belakang, rumusan masalah, dan tinjauan pustaka utama telah diselesaikan dengan sukses.',
-    path: '/editor'
-  },
-  {
-    id: 'h-4',
-    type: 'Chat PDF',
-    title: 'Tanya Jawab Dokumen Jurnal IEEE Machine Learning 2025',
-    date: '02 Agu 2026',
-    status: 'Selesai',
-    summary: 'Ekstraksi kutipan & kesimpulan metode kuantitatif.',
-    path: '/pdf-chat'
-  },
-  {
-    id: 'h-5',
-    type: 'Auto Format',
-    title: 'Penyesuaian Margin & Sub-bab Standar Pedoman Skripsi Universitas',
-    date: '28 Jul 2026',
-    status: 'Selesai',
-    summary: 'Format margin 4-4-3-3, font Times New Roman 12pt, spasi 1.5.',
-    path: '/auto-format'
-  }
-];
+const DEFAULT_HISTORY_ITEMS: HistoryItem[] = [];
 
 export default function HistoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('All');
 
   // Load user saved projects dynamically and merge with default items
-  const userProjects = getUserProjects();
+  const userInfoRaw = localStorage.getItem('user_info');
+  const userInfo = userInfoRaw ? JSON.parse(userInfoRaw) : null;
+  const isAdmin = userInfo?.role === 'admin';
+  const userProjects = getUserProjects(userInfo?.email, isAdmin);
   const dynamicProjectHistory: HistoryItem[] = userProjects.map((proj) => ({
     id: proj.id,
     type: 'Proposal' as const,

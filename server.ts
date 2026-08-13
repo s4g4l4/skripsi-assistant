@@ -19,6 +19,7 @@ import adminRoutes from './src/routes/adminRoutes.js';
 import paymentRoutes from './src/routes/paymentRoutes.js';
 import pdfChatRoutes from './src/routes/pdfChatRoutes.js';
 import collaborationRoutes from './src/routes/collaborationRoutes.js';
+import aiToolsRoutes from './src/routes/aiToolsRoutes.js';
 
 // Monitoring, Logging & Error Handling
 import { logger } from './src/utils/logger.js';
@@ -72,6 +73,7 @@ async function startServer() {
   app.use('/api/payment', paymentRoutes);
   app.use('/api/pdf-chat', pdfChatRoutes);
   app.use('/api/collaboration', collaborationRoutes);
+  app.use('/api/ai-tools', aiToolsRoutes);
 
   // Health check endpoint
   app.get('/api/health', (req, res) => {

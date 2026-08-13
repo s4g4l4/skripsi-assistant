@@ -18,6 +18,7 @@ interface PdfDocument {
   uploadedAt: string;
   chunks: PdfChunk[];
   rawText: string;
+  userEmail?: string;
 }
 
 // In-memory indexed PDF store

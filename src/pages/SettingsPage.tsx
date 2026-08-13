@@ -180,14 +180,16 @@ export default function SettingsPage() {
               <Sliders className="w-4 h-4 text-emerald-600" /> Preferensi Format AI
             </button>
 
+            {userInfo?.role === 'admin' && (
             <button
               onClick={() => setActiveTab('apikeys')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-colors ${
                 activeTab === 'apikeys' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'
               }`}
             >
-              <Key className="w-4 h-4 text-emerald-600" /> API Keys Custom (Groq / DeepSeek)
+              <Key className="w-4 h-4 text-emerald-600" /> API Keys
             </button>
+            )}
 
             <button
               onClick={() => setActiveTab('security')}
@@ -318,11 +320,11 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {activeTab === 'apikeys' && (
+          {(activeTab === 'apikeys' && userInfo?.role === 'admin') && (
             <div className="space-y-5">
               <div className="border-b border-slate-100 pb-3">
                 <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                  <Key className="w-4 h-4 text-emerald-600" /> Multi-Engine AI Integration & Custom API Keys
+                  <Key className="w-4 h-4 text-emerald-600" /> API Keys
                 </h2>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                   Pilih model AI utama atau gunakan sinergi gabungan (Multi-Engine Synergy). Anda dapat mengambil API Key gratis dari masing-masing provider melalui tautan resmi di bawah ini.

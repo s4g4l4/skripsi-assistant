@@ -117,7 +117,7 @@ export default function BidangIlmuSelector({
               </div>
 
               {/* Category Pills */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
                 <button
                   type="button"
                   onClick={() => setSelectedCategory('Semua')}
