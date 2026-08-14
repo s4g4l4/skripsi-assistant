@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { 
   Search, BookOpen, Filter, ExternalLink, CheckCircle2, 
-  Sparkles, Award, Clock, DollarSign, Bookmark, ArrowRight, ShieldCheck, Zap
+  Sparkles, Award, Clock, DollarSign, Bookmark, ArrowRight, ShieldCheck, Zap, Globe
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { EuropePmcSearchModal } from './EuropePmcSearchModal';
 
 export interface JournalRecommendation {
   id: string;
@@ -83,7 +84,7 @@ const MOCK_JOURNALS: JournalRecommendation[] = [
     scopeMatchScore: 88,
     sampleArticle: 'Efektivitas Media Pembelajaran Interaktif pada Siswa Sekolah Menengah',
     description: 'Sangat cocok untuk mahasiswa S1 yang membutuhkan publikasi cepat sebagai syarat kelulusan.',
-    url: 'https://garuda.kemdikbud.go.id'
+    url: 'https://garuda.kemdiktisaintek.go.id'
   },
   {
     id: 'j6',
@@ -101,6 +102,7 @@ const MOCK_JOURNALS: JournalRecommendation[] = [
 ];
 
 export default function JournalFinderSection() {
+  const [activeTab, setActiveTab] = useState<'katalog' | 'europepmc'>('katalog');
   const [topicInput, setTopicInput] = useState('');
   const [selectedYearFilter, setSelectedYearFilter] = useState('Semua Tahun');
   const [selectedIndexing, setSelectedIndexing] = useState('Semua Indexing');
@@ -161,18 +163,55 @@ export default function JournalFinderSection() {
         <div className="text-center space-y-3 max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-bold uppercase tracking-wider">
             <BookOpen className="w-4 h-4 text-blue-400" />
-            <span>Pencari Jurnal SINTA & Scopus Terintegrasi</span>
+            <span>Pencari Jurnal & Literatur Ilmiah Terintegrasi</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Cari Jurnal Mudah dan Terpercaya
+            Cari Jurnal & Referensi Internasional
           </h2>
           <p className="text-slate-300 text-base sm:text-lg leading-relaxed">
-            Dapatkan rekomendasi jurnal yang sesuai dengan penelitian lo.
+            Dapatkan rekomendasi jurnal SINTA/Scopus atau telusuri langsung 40+ juta artikel ilmiah via Europe PMC Open Access.
           </p>
+
+          {/* Tab Selection */}
+          <div className="inline-flex p-1.5 bg-slate-950/80 border border-slate-800 rounded-2xl gap-2 mt-4 shadow-xl">
+            <button
+              type="button"
+              onClick={() => setActiveTab('katalog')}
+              className={`px-5 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-2 transition-all ${
+                activeTab === 'katalog'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Katalog Jurnal SINTA & Scopus</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('europepmc')}
+              className={`px-5 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-2 transition-all ${
+                activeTab === 'europepmc'
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/30'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Globe className="w-4 h-4 text-emerald-300" />
+              <span>Europe PMC Live (40M+ Artikel)</span>
+              <span className="px-1.5 py-0.5 rounded-md bg-emerald-400/20 text-emerald-300 text-[10px] font-black uppercase">
+                Free
+              </span>
+            </button>
+          </div>
         </div>
 
-        {/* Search & Filter Bar Widget */}
-        <div className="bg-slate-950 p-6 rounded-3xl border border-slate-800 shadow-2xl space-y-5">
+        {activeTab === 'europepmc' ? (
+          <div className="bg-slate-950 rounded-3xl border border-slate-800 shadow-2xl overflow-hidden">
+            <EuropePmcSearchModal isEmbedded={true} />
+          </div>
+        ) : (
+          <>
+            {/* Search & Filter Bar Widget */}
+            <div className="bg-slate-950 p-6 rounded-3xl border border-slate-800 shadow-2xl space-y-5">
           <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="w-5 h-5 absolute left-4 top-3.5 text-slate-400" />
@@ -365,6 +404,8 @@ export default function JournalFinderSection() {
             })}
           </AnimatePresence>
         </div>
+        </>
+        )}
 
         {/* Bottom Callout */}
         <div className="bg-gradient-to-r from-blue-900/40 via-indigo-900/40 to-slate-900 p-5 rounded-2xl border border-blue-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">

@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { ExportToDocsButton } from '../components/ExportToDocsButton';
+import { EuropePmcSearchModal } from '../components/EuropePmcSearchModal';
 
 export interface AIToolItem {
   id: string;
@@ -310,6 +312,15 @@ export const ALL_44_AI_TOOLS: AIToolItem[] = [
 
   // 5. Riset & Referensi
   {
+    id: 'europe-pmc-explorer',
+    name: 'Europe PMC Academic Explorer (Live 40M+)',
+    category: 'Riset & Referensi',
+    description: 'Telusuri langsung 40+ juta artikel ilmiah, preprint, dan jurnal medis/sains internasional dengan Open Access gratis.',
+    icon: Globe,
+    badge: 'Live Open Access',
+    color: 'from-emerald-500 to-teal-600'
+  },
+  {
     id: 'pencari-artikel',
     name: 'Pencari Artikel Ilmiah',
     category: 'Riset & Referensi',
@@ -389,6 +400,7 @@ export default function AIToolsHubPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua Category');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTool, setActiveTool] = useState<AIToolItem | null>(null);
+  const [isEuropePmcOpen, setIsEuropePmcOpen] = useState(false);
   
   // Modal generator state
   const [inputVal, setInputVal] = useState('');
@@ -415,6 +427,10 @@ export default function AIToolsHubPage() {
   });
 
   const handleOpenTool = (tool: AIToolItem) => {
+    if (tool.id === 'europe-pmc-explorer') {
+      setIsEuropePmcOpen(true);
+      return;
+    }
     setActiveTool(tool);
     setInputVal('');
     setSecondaryInput('');
@@ -636,17 +652,20 @@ export default function AIToolsHubPage() {
               {/* Output Result */}
               {aiResult && (
                 <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
                       <CheckCircle2 className="w-4 h-4" /> Hasil AI Generated:
                     </span>
-                    <button
-                      onClick={handleCopyResult}
-                      className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 flex items-center gap-1 transition-colors"
-                    >
-                      {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
-                      <span>{copied ? 'Tersalin!' : 'Salin Hasil'}</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <ExportToDocsButton content={aiResult} title={activeTool?.name || 'Hasil Dukun Skripsi'} />
+                      <button
+                        onClick={handleCopyResult}
+                        className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 flex items-center gap-1 transition-colors"
+                      >
+                        {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+                        <span>{copied ? 'Tersalin!' : 'Salin Hasil'}</span>
+                      </button>
+                    </div>
                   </div>
 
                   <pre className="text-xs text-slate-200 font-mono leading-relaxed whitespace-pre-wrap bg-slate-900 p-3.5 rounded-xl border border-slate-800/80 max-h-60 overflow-y-auto custom-scrollbar">
@@ -665,6 +684,16 @@ export default function AIToolsHubPage() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Europe PMC Academic Explorer Modal */}
+      <AnimatePresence>
+        {isEuropePmcOpen && (
+          <EuropePmcSearchModal
+            isOpen={isEuropePmcOpen}
+            onClose={() => setIsEuropePmcOpen(false)}
+          />
         )}
       </AnimatePresence>
 

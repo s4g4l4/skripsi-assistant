@@ -1,5 +1,7 @@
+/// <reference types="vite/client" />
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import App from './App.tsx';
 import './index.css';
 
@@ -11,22 +13,43 @@ Object.defineProperty(window, 'fetch', {
   enumerable: true,
   writable: true,
   value: async (input: RequestInfo | URL, init: RequestInit = {}) => {
-  try {
-    const userInfoRaw = localStorage.getItem('user_info');
-    if (userInfoRaw) {
-      const userInfo = JSON.parse(userInfoRaw);
-      if (userInfo?.email) {
-        init.headers = {
-          ...init.headers,
-          'x-user-email': userInfo.email,
-          'x-user-role': userInfo.role || 'user'
-        };
+    try {
+      const mergedHeaders: Record<string, string> = {};
+      if (init.headers) {
+        if (typeof Headers !== 'undefined' && init.headers instanceof Headers) {
+          init.headers.forEach((value, key) => {
+            mergedHeaders[key] = value;
+          });
+        } else if (Array.isArray(init.headers)) {
+          init.headers.forEach(([key, value]) => {
+            mergedHeaders[key] = value;
+          });
+        } else if (typeof init.headers === 'object') {
+          Object.assign(mergedHeaders, init.headers);
+        }
       }
+
+      const userInfoRaw = localStorage.getItem('user_info');
+      if (userInfoRaw) {
+        try {
+          const userInfo = JSON.parse(userInfoRaw);
+          if (userInfo?.email) {
+            mergedHeaders['x-user-email'] = userInfo.email;
+            mergedHeaders['x-user-role'] = userInfo.role || 'user';
+          }
+        } catch (e) {}
+      }
+
+      const customApiKeysRaw = localStorage.getItem('custom_api_keys');
+      if (customApiKeysRaw) {
+        mergedHeaders['x-custom-api-keys'] = encodeURIComponent(customApiKeysRaw);
+      }
+
+      init.headers = mergedHeaders;
+    } catch (e) {
+      console.error('Error in fetch interceptor', e);
     }
-  } catch (e) {
-    console.error('Error parsing user_info for fetch interceptor', e);
-  }
-  return originalFetch(input, init);
+    return originalFetch(input, init);
   }
 });
 
@@ -65,18 +88,20 @@ const getIsolatedKey = (key: string) => {
 };
 
 localStorage.setItem = function(key, value) {
-  return originalSetItem.call(this, getIsolatedKey(key), value);
+  return originalSetItem.call(localStorage, getIsolatedKey(key), value);
 };
 localStorage.getItem = function(key) {
-  return originalGetItem.call(this, getIsolatedKey(key));
+  return originalGetItem.call(localStorage, getIsolatedKey(key));
 };
 localStorage.removeItem = function(key) {
-  return originalRemoveItem.call(this, getIsolatedKey(key));
+  return originalRemoveItem.call(localStorage, getIsolatedKey(key));
 };
 // ----------------------------------- //
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || 'placeholder-client-id.apps.googleusercontent.com'}>
+      <App />
+    </GoogleOAuthProvider>
   </StrictMode>,
 );

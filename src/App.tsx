@@ -18,33 +18,37 @@ import HistoryPage from './pages/HistoryPage';
 import SettingsPage from './pages/SettingsPage';
 import AIToolsHubPage from './pages/AIToolsHubPage';
 import HiddenAdminTrigger from './components/HiddenAdminTrigger';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <HiddenAdminTrigger />
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/ai-tools" element={<AIToolsHubPage />} />
-        <Route path="/proposal/new" element={<ProposalWizardPage />} />
-        <Route path="/proposal-wizard" element={<ProposalWizardPage />} />
-        <Route path="/editor" element={<EditorPage />} />
-        <Route path="/auto-format" element={<AutoFormatPage />} />
-        <Route path="/citation-manager" element={<CitationManagerPage />} />
-        <Route path="/presentation/new" element={<PresentationWizardPage />} />
-        <Route path="/simulation" element={<DefenseSimulationPage />} />
-        <Route path="/brainstorming" element={<BrainstormingPage />} />
-        <Route path="/pdf-chat" element={<PdfChatPage />} />
-        <Route path="/collaboration" element={<CollaborationPage />} />
-        <Route path="/olah-data" element={<OlahDataPage />} />
-        <Route path="/riwayat" element={<HistoryPage />} />
-        <Route path="/pengaturan" element={<SettingsPage />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <HiddenAdminTrigger />
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/ai-tools" element={<AIToolsHubPage />} />
+          <Route path="/proposal/new" element={<ProposalWizardPage />} />
+          <Route path="/proposal-wizard" element={<ProposalWizardPage />} />
+          <Route path="/editor" element={<EditorPage />} />
+          <Route path="/auto-format" element={<AutoFormatPage />} />
+          <Route path="/citation-manager" element={<CitationManagerPage />} />
+          <Route path="/presentation/new" element={<PresentationWizardPage />} />
+          <Route path="/simulation" element={<DefenseSimulationPage />} />
+          <Route path="/brainstorming" element={<BrainstormingPage />} />
+          <Route path="/pdf-chat" element={<PdfChatPage />} />
+          <Route path="/collaboration" element={<CollaborationPage />} />
+          <Route path="/olah-data" element={<OlahDataPage />} />
+          <Route path="/riwayat" element={<HistoryPage />} />
+          <Route path="/pengaturan" element={<SettingsPage />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
+
 

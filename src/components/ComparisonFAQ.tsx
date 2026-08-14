@@ -13,7 +13,7 @@ export function FAQ() {
   const faqs = [
     { 
       q: "Model AI apa saja yang didukung oleh Dukun Skripsi AI?", 
-      a: "Dukun Skripsi AI mendukung Multi-Engine AI Integration meliputi Google Gemini 2.5 Flash (bawaan sistem), NVIDIA NIM (DeepSeek-R1 & Llama 3.3 70B dengan 1000 Free Credits gratis), OpenRouter AI (akses 20+ model gratis), Groq Cloud (respon kilat), DeepSeek-R1/V3, Prism, dan GKS-Write. Anda dapat berpindah engine secara manual atau memilih mode Synergy Multi-AI." 
+      a: "Dukun Skripsi AI mendukung Multi-Engine AI Integration meliputi Google Gemini 2.5 Flash (bawaan sistem), NVIDIA NIM (DeepSeek-R1 & Llama 3.3 70B dengan 1000 Free Credits gratis), OpenRouter AI (akses 20+ model gratis), Groq Cloud (respon kilat), DeepSeek-R1/V3, dan Prism. Anda dapat berpindah engine secara manual atau memilih mode Synergy Multi-AI." 
     },
     { 
       q: "Bagaimana cara sistem membaca Buku Panduan Skripsi dari kampus saya?", 

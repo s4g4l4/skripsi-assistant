@@ -65,3 +65,47 @@ export const getStyles = (req: Request, res: Response) => {
   const styles = ['APA', 'MLA', 'Chicago', 'Harvard', 'IEEE'];
   res.json({ styles });
 };
+
+export const searchEuropePmcHandler = async (req: Request, res: Response) => {
+  try {
+    const query = String(req.query.query || '');
+    if (!query.trim()) {
+      return res.status(400).json({ error: 'Query pencarian diperlukan' });
+    }
+
+    const pageSize = Number(req.query.pageSize) || 12;
+    const page = Number(req.query.page) || 1;
+    const resultType = String(req.query.resultType || 'core');
+    const synonym = req.query.synonym !== 'false';
+    const sort = req.query.sort ? String(req.query.sort) : undefined;
+
+    const params = new URLSearchParams({
+      query,
+      format: 'json',
+      resultType,
+      pageSize: String(pageSize),
+      page: String(page),
+      synonym: String(synonym)
+    });
+
+    if (sort) {
+      params.set('sort', sort);
+    }
+
+    const targetUrl = `https://www.ebi.ac.uk/europepmc/webservices/rest/search?${params.toString()}`;
+    const epmcRes = await fetch(targetUrl, {
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (!epmcRes.ok) {
+      return res.status(epmcRes.status).json({ error: 'Gagal mengambil data dari Europe PMC API' });
+    }
+
+    const data = await epmcRes.json();
+    return res.json(data);
+  } catch (error: any) {
+    console.error('Europe PMC Proxy Error:', error);
+    return res.status(500).json({ error: 'Terjadi kesalahan saat memproses pencarian Europe PMC', details: error.message });
+  }
+};
+

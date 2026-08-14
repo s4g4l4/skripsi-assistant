@@ -88,19 +88,27 @@ export function saveUserProject(thesis: ThesisData): UserProjectItem {
 }
 
 export function deleteUserProject(projectId: string): void {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return;
-  const allProjects: UserProjectItem[] = JSON.parse(raw);
-  const filtered = allProjects.filter(p => p.id !== projectId);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const allProjects: UserProjectItem[] = JSON.parse(raw);
+    const filtered = allProjects.filter(p => p.id !== projectId);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+  } catch (e) {
+    console.error('Error deleting user project:', e);
+  }
 }
 
 export function openUserProject(projectId: string): void {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return;
-  const allProjects: UserProjectItem[] = JSON.parse(raw);
-  const found = allProjects.find(p => p.id === projectId);
-  if (found && found.thesisData) {
-    localStorage.setItem('active_thesis_data', JSON.stringify(found.thesisData));
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const allProjects: UserProjectItem[] = JSON.parse(raw);
+    const found = allProjects.find(p => p.id === projectId);
+    if (found && found.thesisData) {
+      localStorage.setItem('active_thesis_data', JSON.stringify(found.thesisData));
+    }
+  } catch (e) {
+    console.error('Error opening user project:', e);
   }
 }

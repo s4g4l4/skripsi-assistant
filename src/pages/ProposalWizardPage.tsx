@@ -197,7 +197,7 @@ export default function ProposalWizardPage() {
     }
   };
 
-  const handleAuthorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAuthorChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setValidationError('');
     setFormData({
       ...formData,

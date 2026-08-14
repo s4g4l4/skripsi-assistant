@@ -7,14 +7,16 @@ import {
   deleteCitation,
   generateBibliography,
   importFromScholar,
-  getStyles
+  getStyles,
+  searchEuropePmcHandler
 } from '../controllers/citationController.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
 
-// Public route
+// Public routes
 router.get('/styles', getStyles);
+router.get('/europepmc/search', searchEuropePmcHandler);
 
 // Protected routes
 router.use(authenticate);

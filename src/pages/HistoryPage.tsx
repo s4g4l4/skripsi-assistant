@@ -23,8 +23,13 @@ export default function HistoryPage() {
   const [filterType, setFilterType] = useState<string>('All');
 
   // Load user saved projects dynamically and merge with default items
-  const userInfoRaw = localStorage.getItem('user_info');
-  const userInfo = userInfoRaw ? JSON.parse(userInfoRaw) : null;
+  let userInfo: any = null;
+  try {
+    const userInfoRaw = localStorage.getItem('user_info');
+    userInfo = userInfoRaw ? JSON.parse(userInfoRaw) : null;
+  } catch (e) {
+    userInfo = null;
+  }
   const isAdmin = userInfo?.role === 'admin';
   const userProjects = getUserProjects(userInfo?.email, isAdmin);
   const dynamicProjectHistory: HistoryItem[] = userProjects.map((proj) => ({

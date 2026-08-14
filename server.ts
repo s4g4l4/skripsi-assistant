@@ -3,6 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
+import { google } from 'googleapis';
 
 // Routes imports
 import authRoutes from './src/routes/authRoutes.js';
@@ -25,10 +26,9 @@ import aiToolsRoutes from './src/routes/aiToolsRoutes.js';
 import { logger } from './src/utils/logger.js';
 import { monitoring } from './src/utils/monitoring.js';
 import { globalErrorHandler } from './src/middleware/errorHandler.js';
+import { contextStorage } from './src/utils/context.js';
 
-// Setup __dirname for ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+
 
 async function startServer() {
   const app = express();
@@ -38,6 +38,20 @@ async function startServer() {
   app.use(cors());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  // Request Context Middleware (for Multi-AI Config)
+  app.use((req, res, next) => {
+    const customApiKeysRaw = req.headers['x-custom-api-keys'];
+    let customApiKeys = null;
+    if (customApiKeysRaw) {
+      try {
+        customApiKeys = JSON.parse(decodeURIComponent(String(customApiKeysRaw)));
+      } catch (e) {}
+    }
+    contextStorage.run({ customApiKeys }, () => {
+      next();
+    });
+  });
 
   // Request Monitoring Middleware
   app.use((req, res, next) => {
@@ -59,6 +73,92 @@ async function startServer() {
   });
 
   // API Routes
+  app.post('/api/google/create-doc', async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).send('Unauthorized');
+    const token = authHeader.split(' ')[1];
+    const { title, content } = req.body;
+    
+    try {
+      // --- SYNERGY MULTI-AI AUTO FORMATTER BEFORE EXPORT ---
+      let formattedContent = content;
+      try {
+        const customApiKeysRaw = req.headers['x-custom-api-keys'];
+        let keys: any = {};
+        if (customApiKeysRaw) {
+          try { keys = JSON.parse(decodeURIComponent(customApiKeysRaw as string)); } catch (e) {}
+        }
+
+        const formattingPrompt = `Bertindaklah sebagai editor akademik profesional (Synergy Multi-AI & GKS-Write Engine). Tugas Anda adalah merapikan, memformat, dan menyusun teks berikut menjadi struktur dokumen ilmiah yang rapi, formal, memiliki sub-judul yang jelas (menggunakan format standar skripsi/penelitian), tata bahasa EYD/PUEBI yang sempurna, tanpa menghilangkan informasi atau substansi aslinya:
+
+${content}`;
+
+        // Try OpenAI compatible if configured
+        let aiSuccess = false;
+        if (keys.selectedEngine === 'groq' && keys.groqApiKey) {
+          const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${keys.groqApiKey}` },
+            body: JSON.stringify({ model: 'llama-3.1-70b-versatile', messages: [{ role: 'system', content: 'You are an academic document formatting assistant.' }, { role: 'user', content: formattingPrompt }], temperature: 0.3 })
+          });
+          if (r.ok) {
+            const data = await r.json();
+            if (data.choices?.[0]?.message?.content) {
+              formattedContent = data.choices[0].message.content;
+              aiSuccess = true;
+            }
+          }
+        } else if (keys.selectedEngine === 'deepseek' && keys.deepseekApiKey) {
+          const r = await fetch('https://api.deepseek.com/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${keys.deepseekApiKey}` },
+            body: JSON.stringify({ model: 'deepseek-chat', messages: [{ role: 'system', content: 'You are an academic document formatting assistant.' }, { role: 'user', content: formattingPrompt }], temperature: 0.3 })
+          });
+          if (r.ok) {
+            const data = await r.json();
+            if (data.choices?.[0]?.message?.content) {
+              formattedContent = data.choices[0].message.content;
+              aiSuccess = true;
+            }
+          }
+        }
+
+        // Fallback to Gemini if not yet successful
+        if (!aiSuccess) {
+          const { GoogleGenAI } = await import('@google/genai');
+          const geminiKey = keys.geminiApiKey || process.env.GEMINI_API_KEY;
+          const ai = new GoogleGenAI({ apiKey: geminiKey });
+          const geminiRes = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: formattingPrompt,
+            config: { systemInstruction: 'You are an expert academic document formatter.' }
+          });
+          if (geminiRes.text) {
+            formattedContent = geminiRes.text;
+          }
+        }
+      } catch (formattingErr) {
+        console.warn('AI formatting skipped, using raw content:', formattingErr);
+      }
+      // ----------------------------------------------------
+
+      const auth = new google.auth.OAuth2();
+      auth.setCredentials({ access_token: token });
+      const docs = google.docs({ version: 'v1', auth });
+      const doc = await docs.documents.create({ requestBody: { title } });
+      await docs.documents.batchUpdate({
+        documentId: doc.data.documentId,
+        requestBody: {
+          requests: [{ insertText: { text: formattedContent, location: { index: 1 } } }]
+        }
+      });
+      res.json({ docId: doc.data.documentId, formatted: true });
+    } catch (e) {
+      console.error(e);
+      res.status(500).send('Gagal membuat dokumen');
+    }
+  });
+
   app.use('/api/auth', authRoutes);
   app.use('/api/projects', projectRoutes);
   app.use('/api/proposal', proposalRoutes);

@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Book, BookOpen, Globe, Search, Plus, Filter, Download, 
   Upload, Copy, CheckCircle2, MoreVertical, X, FileText, 
-  Wand2, Trash2, Edit
+  Wand2, Trash2, Edit, Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
+import { EuropePmcSearchModal } from '../components/EuropePmcSearchModal';
 
 type SourceType = 'Journal' | 'Book' | 'Website' | 'Conference';
 
@@ -71,7 +72,21 @@ const CITATION_STYLES = [
 ];
 
 export default function CitationManagerPage() {
-  const [sources, setSources] = useState<Source[]>(INITIAL_SOURCES);
+  const [sources, setSources] = useState<Source[]>(() => {
+    try {
+      const saved = localStorage.getItem('user_saved_citations');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Merge initial with saved
+          const existingIds = new Set(INITIAL_SOURCES.map(s => s.id));
+          const uniqueSaved = parsed.filter((p: Source) => !existingIds.has(p.id));
+          return [...uniqueSaved, ...INITIAL_SOURCES];
+        }
+      }
+    } catch (e) {}
+    return INITIAL_SOURCES;
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<SourceType | 'All'>('All');
   const [selectedStyle, setSelectedStyle] = useState('APA 7th Edition');
@@ -80,6 +95,7 @@ export default function CitationManagerPage() {
   
   const [importStatus, setImportStatus] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEuropePmcOpen, setIsEuropePmcOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
   const handleExportBib = () => {
@@ -292,12 +308,20 @@ export default function CitationManagerPage() {
           <div className="p-4 border-b border-slate-200 space-y-4 shrink-0">
             <div className="flex flex-col sm:flex-row justify-between gap-4">
               <h2 className="text-lg font-extrabold text-slate-900">Library Referensi</h2>
-              <button 
-                onClick={() => setIsAddModalOpen(true)}
-                className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold rounded-xl transition-colors"
-              >
-                <Plus className="w-4 h-4" /> Tambah Sumber
-              </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button 
+                  onClick={() => setIsEuropePmcOpen(true)}
+                  className="flex items-center justify-center gap-2 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-extrabold rounded-xl shadow-md shadow-emerald-600/20 transition-all"
+                >
+                  <Globe className="w-3.5 h-3.5" /> Cari di Europe PMC (Live)
+                </button>
+                <button 
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="flex items-center justify-center gap-2 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Tambah Manual
+                </button>
+              </div>
             </div>
             
             <div className="flex flex-col sm:flex-row gap-3">
@@ -573,6 +597,24 @@ export default function CitationManagerPage() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Europe PMC Live Search Modal */}
+      <AnimatePresence>
+        {isEuropePmcOpen && (
+          <EuropePmcSearchModal
+            isOpen={isEuropePmcOpen}
+            onClose={() => setIsEuropePmcOpen(false)}
+            onImportToCitationManager={(newSrc) => {
+              setSources((prev) => {
+                if (prev.some(s => s.id === newSrc.id)) return prev;
+                return [newSrc, ...prev];
+              });
+              setImportStatus(`Berhasil menambahkan "${newSrc.title.substring(0, 32)}..." ke Library!`);
+              setTimeout(() => setImportStatus(''), 4000);
+            }}
+          />
         )}
       </AnimatePresence>
 

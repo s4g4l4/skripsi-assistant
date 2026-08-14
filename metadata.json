@@ -1,6 +1,6 @@
 {
   "name": "Dukun Skripsi Analysis",
-  "description": "Interactive analysis report for an AI Thesis Assistant platform.",
+  "description": "Platform AI Asisten Skripsi & Riset Akademis dengan integrasi multi-engine AI, Europe PMC Open Access, NCBI PubMed, Tavily, Jina, Voyage, Qdrant, LlamaCloud, Firecrawl, Context7, dan Server MCP Pertanian & Geospasial.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
