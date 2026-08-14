@@ -490,15 +490,20 @@ ${contextInputs}
     }
 
     try {
-      const res = await fetch('/api/gemini/generate', {
+      const res = await fetch('/api/ai-tools/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: systemPrompt })
+        body: JSON.stringify({
+          toolName: `Thesis Step: ${step.title}`,
+          toolCategory: 'Roadmap Guidance',
+          toolDescription: 'Memberikan bimbingan, draf, tips, dan arahan taktis untuk tahapan skripsi.',
+          inputVal: systemPrompt
+        })
       });
 
       if (res.ok) {
         const data = await res.json();
-        setAiResponse(data.text || data.result || "AI siap membantu! Silakan gunakan saran di atas.");
+        setAiResponse(data.result || data.text || "AI siap membantu! Silakan gunakan saran di atas.");
       } else {
         // Fallback simulated response if backend fails
         setAiResponse(getFallbackAiText(step, btnType));

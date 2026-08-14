@@ -2,6 +2,13 @@ import { Request, Response } from 'express';
 import * as pdfParseModule from 'pdf-parse';
 const pdfParse: any = (pdfParseModule as any).default || pdfParseModule;
 import { chatWithPdfDocument, extractPdfCitations, analyzeGuidebookDoc } from '../services/aiService.js';
+import { 
+  parseWithLlamaCloud, 
+  computeEmbedding, 
+  upsertToQdrant, 
+  queryQdrantVector, 
+  getActiveApiKeys 
+} from '../services/unifiedIntegrationService.js';
 
 interface PdfChunk {
   id: string;
@@ -19,6 +26,7 @@ interface PdfDocument {
   chunks: PdfChunk[];
   rawText: string;
   userEmail?: string;
+  vectorIndexed?: boolean;
 }
 
 // In-memory indexed PDF store
@@ -61,6 +69,7 @@ const chatHistories: Record<string, { role: string; text: string; timestamp: str
 export const uploadAndIndexPdf = async (req: Request, res: Response) => {
   const file = req.file;
   const customTitle = req.body.title;
+  const keys = getActiveApiKeys();
 
   const docId = `pdf-${Date.now()}`;
   const filename = file ? file.originalname : (customTitle ? `${customTitle}.pdf` : 'Dokumen_Referensi.pdf');
@@ -68,8 +77,23 @@ export const uploadAndIndexPdf = async (req: Request, res: Response) => {
 
   let extractedRawText = req.body.extractedText || '';
   let realPageCount = 1;
+  let parsingEngine = 'Standard PDF Parser';
 
-  if (file && file.buffer) {
+  // 1. Try LlamaCloud / LlamaParse if API key configured
+  if (file && file.buffer && keys.llamaCloudApiKey) {
+    try {
+      const llamaText = await parseWithLlamaCloud(file.buffer, filename, keys);
+      if (llamaText && llamaText.trim().length > 30) {
+        extractedRawText = llamaText;
+        parsingEngine = 'LlamaCloud / LlamaParse Engine';
+      }
+    } catch (e) {
+      console.warn('LlamaCloud parsing fallback to local pdf-parse:', e);
+    }
+  }
+
+  // 2. Fallback to pdf-parse
+  if (!extractedRawText && file && file.buffer) {
     try {
       const parsed = await pdfParse(file.buffer);
       if (parsed.text && parsed.text.trim().length > 10) {
@@ -108,6 +132,28 @@ export const uploadAndIndexPdf = async (req: Request, res: Response) => {
     });
   }
 
+  // 3. Upsert to Qdrant Cloud Vector Store if configured
+  let vectorIndexed = false;
+  if (keys.qdrantUrl && (keys.voyageApiKey || keys.jinaApiKey)) {
+    try {
+      for (const chunk of sampleChunks.slice(0, 5)) {
+        const vec = await computeEmbedding(chunk.text, keys);
+        if (vec) {
+          await upsertToQdrant(
+            chunk.id,
+            vec,
+            { docId, title, page: chunk.page, text: chunk.text },
+            'thesis_documents',
+            keys
+          );
+        }
+      }
+      vectorIndexed = true;
+    } catch (e) {
+      console.warn('Qdrant indexing skipped:', e);
+    }
+  }
+
   indexedDocuments[docId] = {
     id: docId,
     filename,
@@ -116,11 +162,12 @@ export const uploadAndIndexPdf = async (req: Request, res: Response) => {
     chunksCount: sampleChunks.length,
     uploadedAt: new Date().toISOString(),
     rawText: extractedRawText,
-    chunks: sampleChunks
+    chunks: sampleChunks,
+    vectorIndexed
   };
 
   res.status(201).json({
-    message: 'Dokumen PDF berhasil dibaca & di-index ke Vector Store dengan Gemini 2.5 Flash!',
+    message: `Dokumen PDF berhasil dibaca & di-index (${parsingEngine})!`,
     document: {
       id: docId,
       filename,
@@ -128,6 +175,7 @@ export const uploadAndIndexPdf = async (req: Request, res: Response) => {
       pageCount: indexedDocuments[docId].pageCount,
       chunksCount: indexedDocuments[docId].chunksCount,
       uploadedAt: indexedDocuments[docId].uploadedAt,
+      vectorIndexed,
       snippet: extractedRawText.substring(0, 300)
     }
   });
@@ -135,6 +183,7 @@ export const uploadAndIndexPdf = async (req: Request, res: Response) => {
 
 export const parseGuidebook = async (req: Request, res: Response) => {
   const file = req.file;
+  const keys = getActiveApiKeys();
 
   if (!file) {
     return res.status(400).json({ error: 'File Buku Panduan Skripsi PDF/DOCX wajib diunggah.' });
@@ -143,7 +192,19 @@ export const parseGuidebook = async (req: Request, res: Response) => {
   let extractedRawText = req.body.extractedText || '';
   let realPageCount = 1;
 
-  if (file.buffer) {
+  // Try LlamaCloud if available
+  if (file.buffer && keys.llamaCloudApiKey) {
+    try {
+      const llamaText = await parseWithLlamaCloud(file.buffer, file.originalname, keys);
+      if (llamaText && llamaText.trim().length > 30) {
+        extractedRawText = llamaText;
+      }
+    } catch (e) {
+      console.warn('LlamaCloud guidebook parsing skipped:', e);
+    }
+  }
+
+  if (!extractedRawText && file.buffer) {
     try {
       const parsed = await pdfParse(file.buffer);
       if (parsed.text && parsed.text.trim().length > 10) {
@@ -163,7 +224,7 @@ export const parseGuidebook = async (req: Request, res: Response) => {
     const analysis = await analyzeGuidebookDoc(file.originalname, extractedRawText);
     
     res.json({
-      message: 'Buku Panduan Skripsi berhasil dianalisis 100% akurat oleh Gemini 2.5 Flash!',
+      message: 'Buku Panduan Skripsi berhasil dianalisis komprehensif!',
       filename: file.originalname,
       pageCount: realPageCount,
       analysis,
@@ -179,6 +240,7 @@ export const parseGuidebook = async (req: Request, res: Response) => {
 
 export const chatPdf = async (req: Request, res: Response) => {
   const { docId, question } = req.body;
+  const keys = getActiveApiKeys();
 
   if (!docId || !indexedDocuments[docId]) {
     return res.status(404).json({ error: 'Dokumen PDF tidak ditemukan atau belum di-index.' });
@@ -194,8 +256,26 @@ export const chatPdf = async (req: Request, res: Response) => {
   }
 
   try {
-    // RAG Search: select most relevant chunks
-    const relevantChunks = doc.chunks.slice(0, 3);
+    let relevantChunks = doc.chunks.slice(0, 3);
+
+    // If Qdrant is configured, query semantic vector chunks
+    if (keys.qdrantUrl && (keys.voyageApiKey || keys.jinaApiKey)) {
+      try {
+        const queryVec = await computeEmbedding(question, keys);
+        if (queryVec) {
+          const qdrantResults = await queryQdrantVector(queryVec, 3, 'thesis_documents', keys);
+          if (qdrantResults && qdrantResults.length > 0) {
+            relevantChunks = qdrantResults.map((qr: any) => ({
+              id: String(qr.id),
+              page: qr.payload?.page || 1,
+              text: qr.payload?.text || ''
+            }));
+          }
+        }
+      } catch (qErr) {
+        console.warn('Vector search fallback to chunk slice:', qErr);
+      }
+    }
     
     const aiResult = await chatWithPdfDocument(
       doc.title,
@@ -215,7 +295,7 @@ export const chatPdf = async (req: Request, res: Response) => {
         { page: relevantChunks[0]?.page || 1, quote: relevantChunks[0]?.text || '', relevance: 'Sangat relevan' }
       ],
       citations: aiResult.citations || [
-        { format: 'APA 7th', text: `${doc.title}. (2024). Jurnal Referensi Akademik.` }
+        { format: 'APA 7th', text: `${doc.title}. (${new Date().getFullYear()}). Jurnal Referensi Akademik.` }
       ]
     });
   } catch (error: any) {
@@ -264,7 +344,8 @@ export const getDocuments = (req: Request, res: Response) => {
     title: d.title,
     pageCount: d.pageCount,
     chunksCount: d.chunksCount,
-    uploadedAt: d.uploadedAt
+    uploadedAt: d.uploadedAt,
+    vectorIndexed: d.vectorIndexed
   }));
 
   res.json({ documents: docsList });

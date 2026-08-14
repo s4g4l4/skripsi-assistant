@@ -50,67 +50,106 @@ export default function SettingsPage() {
   const [customApiKeys, setCustomApiKeys] = useState(() => {
     try {
       const saved = localStorage.getItem('custom_api_keys');
-      return saved ? JSON.parse(saved) : {
-        selectedEngine: 'multi_synergy',
-        // 1. AI Reasoning & LLM
-        geminiApiKey: '',
-        nvidiaApiKey: '',
-        mistralApiKey: '',
-        groqApiKey: '',
-        deepseekApiKey: '',
-        openrouterApiKey: '',
-        prismApiKey: '',
-        cohereApiKey: '',
+      const parsed = saved ? JSON.parse(saved) : {};
+      return {
+        selectedEngine: parsed.selectedEngine || 'multi_synergy',
+        // 1. AI Reasoning & LLM Flags & Keys
+        geminiEnabled: parsed.geminiEnabled !== undefined ? parsed.geminiEnabled : true,
+        geminiApiKey: parsed.geminiApiKey || '',
+        nvidiaEnabled: parsed.nvidiaEnabled !== undefined ? parsed.nvidiaEnabled : Boolean(parsed.nvidiaApiKey),
+        nvidiaApiKey: parsed.nvidiaApiKey || '',
+        mistralEnabled: parsed.mistralEnabled !== undefined ? parsed.mistralEnabled : Boolean(parsed.mistralApiKey),
+        mistralApiKey: parsed.mistralApiKey || '',
+        groqEnabled: parsed.groqEnabled !== undefined ? parsed.groqEnabled : Boolean(parsed.groqApiKey),
+        groqApiKey: parsed.groqApiKey || '',
+        deepseekEnabled: parsed.deepseekEnabled !== undefined ? parsed.deepseekEnabled : Boolean(parsed.deepseekApiKey),
+        deepseekApiKey: parsed.deepseekApiKey || '',
+        openrouterEnabled: parsed.openrouterEnabled !== undefined ? parsed.openrouterEnabled : Boolean(parsed.openrouterApiKey),
+        openrouterApiKey: parsed.openrouterApiKey || '',
+        prismEnabled: parsed.prismEnabled !== undefined ? parsed.prismEnabled : Boolean(parsed.prismApiKey),
+        prismApiKey: parsed.prismApiKey || '',
+        cohereEnabled: parsed.cohereEnabled !== undefined ? parsed.cohereEnabled : Boolean(parsed.cohereApiKey),
+        cohereApiKey: parsed.cohereApiKey || '',
 
         // 2. Web & Academic Search
-        tavilyApiKey: '',
-        ncbiApiKey: '',
-        openAlexApiKey: '',
+        europePmcEnabled: parsed.europePmcEnabled !== undefined ? parsed.europePmcEnabled : true,
+        ncbiEnabled: parsed.ncbiEnabled !== undefined ? parsed.ncbiEnabled : true,
+        ncbiApiKey: parsed.ncbiApiKey || '',
+        tavilyEnabled: parsed.tavilyEnabled !== undefined ? parsed.tavilyEnabled : Boolean(parsed.tavilyApiKey),
+        tavilyApiKey: parsed.tavilyApiKey || '',
+        openAlexEnabled: parsed.openAlexEnabled !== undefined ? parsed.openAlexEnabled : true,
+        openAlexApiKey: parsed.openAlexApiKey || '',
 
         // 3. Vector Embeddings & Reranker
-        jinaApiKey: '',
-        voyageApiKey: '',
-        cohereRerankApiKey: '',
+        jinaEnabled: parsed.jinaEnabled !== undefined ? parsed.jinaEnabled : Boolean(parsed.jinaApiKey),
+        jinaApiKey: parsed.jinaApiKey || '',
+        voyageEnabled: parsed.voyageEnabled !== undefined ? parsed.voyageEnabled : Boolean(parsed.voyageApiKey),
+        voyageApiKey: parsed.voyageApiKey || '',
+        cohereRerankEnabled: parsed.cohereRerankEnabled !== undefined ? parsed.cohereRerankEnabled : Boolean(parsed.cohereRerankApiKey),
+        cohereRerankApiKey: parsed.cohereRerankApiKey || '',
 
         // 4. Vector Database & Storage
-        qdrantUrl: '',
-        qdrantApiKey: '',
+        qdrantEnabled: parsed.qdrantEnabled !== undefined ? parsed.qdrantEnabled : Boolean(parsed.qdrantUrl),
+        qdrantUrl: parsed.qdrantUrl || '',
+        qdrantApiKey: parsed.qdrantApiKey || '',
 
         // 5. Document Scraping & Parsing
-        firecrawlApiKey: '',
-        llamaCloudApiKey: '',
+        firecrawlEnabled: parsed.firecrawlEnabled !== undefined ? parsed.firecrawlEnabled : Boolean(parsed.firecrawlApiKey),
+        firecrawlApiKey: parsed.firecrawlApiKey || '',
+        llamaCloudEnabled: parsed.llamaCloudEnabled !== undefined ? parsed.llamaCloudEnabled : Boolean(parsed.llamaCloudApiKey),
+        llamaCloudApiKey: parsed.llamaCloudApiKey || '',
 
         // 6. Vision, Geospatial & MCP Servers
-        context7ApiKey: '',
-        agriBrainEndpoint: 'http://localhost:8000/sse',
-        agriBrainEnabled: true,
-        leafEnginesEndpoint: 'https://api.leafengines.mcp/v1/sse',
-        leafEnginesApiKey: '',
-        leafEnginesEnabled: true,
-        agricultureMcpEndpoint: 'http://localhost:8080/mcp',
-        agricultureMcpEnabled: true
+        context7Enabled: parsed.context7Enabled !== undefined ? parsed.context7Enabled : Boolean(parsed.context7ApiKey),
+        context7ApiKey: parsed.context7ApiKey || '',
+        agriBrainEndpoint: parsed.agriBrainEndpoint || 'http://localhost:8000/sse',
+        agriBrainEnabled: parsed.agriBrainEnabled !== undefined ? parsed.agriBrainEnabled : true,
+        leafEnginesEndpoint: parsed.leafEnginesEndpoint || 'https://api.leafengines.mcp/v1/sse',
+        leafEnginesApiKey: parsed.leafEnginesApiKey || '',
+        leafEnginesEnabled: parsed.leafEnginesEnabled !== undefined ? parsed.leafEnginesEnabled : true,
+        agricultureMcpEndpoint: parsed.agricultureMcpEndpoint || 'http://localhost:8080/mcp',
+        agricultureMcpEnabled: parsed.agricultureMcpEnabled !== undefined ? parsed.agricultureMcpEnabled : true
       };
     } catch (e) {
       return { 
         selectedEngine: 'multi_synergy',
+        geminiEnabled: true,
         geminiApiKey: '',
+        nvidiaEnabled: false,
         nvidiaApiKey: '',
+        mistralEnabled: false,
         mistralApiKey: '',
+        groqEnabled: false,
         groqApiKey: '',
+        deepseekEnabled: false,
         deepseekApiKey: '',
+        openrouterEnabled: false,
         openrouterApiKey: '',
+        prismEnabled: false,
         prismApiKey: '',
+        cohereEnabled: false,
         cohereApiKey: '',
-        tavilyApiKey: '',
+        europePmcEnabled: true,
+        ncbiEnabled: true,
         ncbiApiKey: '',
+        tavilyEnabled: false,
+        tavilyApiKey: '',
+        openAlexEnabled: true,
         openAlexApiKey: '',
+        jinaEnabled: false,
         jinaApiKey: '',
+        voyageEnabled: false,
         voyageApiKey: '',
+        cohereRerankEnabled: false,
         cohereRerankApiKey: '',
+        qdrantEnabled: false,
         qdrantUrl: '',
         qdrantApiKey: '',
+        firecrawlEnabled: false,
         firecrawlApiKey: '',
+        llamaCloudEnabled: false,
         llamaCloudApiKey: '',
+        context7Enabled: false,
         context7ApiKey: '',
         agriBrainEndpoint: 'http://localhost:8000/sse',
         agriBrainEnabled: true,
@@ -123,6 +162,47 @@ export default function SettingsPage() {
     }
   });
 
+  const getActiveAiCount = () => {
+    let count = 0;
+    if (customApiKeys.geminiEnabled !== false) count++;
+    if (customApiKeys.nvidiaEnabled) count++;
+    if (customApiKeys.mistralEnabled) count++;
+    if (customApiKeys.groqEnabled) count++;
+    if (customApiKeys.deepseekEnabled) count++;
+    if (customApiKeys.openrouterEnabled) count++;
+    if (customApiKeys.prismEnabled) count++;
+    if (customApiKeys.cohereEnabled) count++;
+    return count;
+  };
+
+  const toggleAllAiEngines = (enable: boolean) => {
+    setCustomApiKeys({
+      ...customApiKeys,
+      geminiEnabled: enable,
+      nvidiaEnabled: enable,
+      mistralEnabled: enable,
+      groqEnabled: enable,
+      deepseekEnabled: enable,
+      openrouterEnabled: enable,
+      prismEnabled: enable,
+      cohereEnabled: enable,
+    });
+  };
+
+  const toggleConfiguredAiOnly = () => {
+    setCustomApiKeys({
+      ...customApiKeys,
+      geminiEnabled: true,
+      nvidiaEnabled: Boolean(customApiKeys.nvidiaApiKey),
+      mistralEnabled: Boolean(customApiKeys.mistralApiKey),
+      groqEnabled: Boolean(customApiKeys.groqApiKey),
+      deepseekEnabled: Boolean(customApiKeys.deepseekApiKey),
+      openrouterEnabled: Boolean(customApiKeys.openrouterApiKey),
+      prismEnabled: Boolean(customApiKeys.prismApiKey),
+      cohereEnabled: Boolean(customApiKeys.cohereApiKey),
+    });
+  };
+
   // Preferences State
   const [citationFormat, setCitationFormat] = useState('APA 7th Edition');
   const [tone, setTone] = useState('Akademik Formal (Standar Dikti)');
@@ -130,12 +210,14 @@ export default function SettingsPage() {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     localStorage.setItem('user_info', JSON.stringify(userInfo));
+    window.dispatchEvent(new Event('storage'));
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
   };
 
   const handleSaveApiKeys = () => {
     localStorage.setItem('custom_api_keys', JSON.stringify(customApiKeys));
+    window.dispatchEvent(new Event('storage'));
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
   };
@@ -417,25 +499,43 @@ export default function SettingsPage() {
 
               {/* Mode Selection */}
               <div className="p-3.5 bg-slate-900 text-white rounded-2xl space-y-2">
-                <label className="block text-xs font-extrabold text-emerald-400 flex items-center gap-1.5">
-                  <Cpu className="w-4 h-4 text-emerald-400 animate-pulse" /> Engine AI Utama (Primary Generator)
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-extrabold text-emerald-400 flex items-center gap-1.5">
+                    <Cpu className="w-4 h-4 text-emerald-400 animate-pulse" /> Engine AI Utama (Primary Generator)
+                  </label>
+                  <span className="text-[11px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-0.5 rounded-full">
+                    {getActiveAiCount()} dari 8 AI Aktif
+                  </span>
+                </div>
                 <select
                   value={customApiKeys.selectedEngine || 'multi_synergy'}
-                  onChange={(e) => setCustomApiKeys({ ...customApiKeys, selectedEngine: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-slate-800 border border-slate-700 text-white font-bold rounded-xl outline-none focus:ring-2 focus:ring-emerald-400"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const nextKeys = { ...customApiKeys, selectedEngine: val };
+                    if (val === 'gemini') nextKeys.geminiEnabled = true;
+                    if (val === 'nvidia') nextKeys.nvidiaEnabled = true;
+                    if (val === 'mistral') nextKeys.mistralEnabled = true;
+                    if (val === 'openrouter') nextKeys.openrouterEnabled = true;
+                    if (val === 'groq') nextKeys.groqEnabled = true;
+                    if (val === 'deepseek') nextKeys.deepseekEnabled = true;
+                    if (val === 'prism') nextKeys.prismEnabled = true;
+                    if (val === 'cohere') nextKeys.cohereEnabled = true;
+                    setCustomApiKeys(nextKeys);
+                  }}
+                  className="w-full px-3 py-2 text-xs bg-slate-800 border border-slate-700 text-white font-bold rounded-xl outline-none focus:ring-2 focus:ring-emerald-400 cursor-pointer"
                 >
-                  <option value="multi_synergy">✨ Synergy Multi-AI (Failover & Routing Cerdas Otomatis)</option>
-                  <option value="gemini">♊ Google Gemini 2.5 Flash (Standard Bawaan Sistem)</option>
-                  <option value="nvidia">🟢 NVIDIA NIM (DeepSeek-R1 / Llama-3.3 - 1000 Free Credits)</option>
-                  <option value="mistral">🌪️ Mistral AI (Mistral Large & Codestral)</option>
-                  <option value="openrouter">🪐 OpenRouter AI (20+ Model Gratis / DeepSeek / Llama)</option>
-                  <option value="groq">⚡ Groq Cloud (Llama-3.1 70B / Mixtral - Ultra Fast)</option>
-                  <option value="deepseek">🧠 DeepSeek-R1 / V3 (Deep Reasoning & Analysis)</option>
-                  <option value="prism">🔮 Prism by OpenAI (GPT-4o Academic Writer)</option>
+                  <option value="multi_synergy">✨ Synergy Multi-AI (Failover Otomatis ke Semua AI yang Dicentang)</option>
+                  <option value="gemini">♊ Google Gemini Flash {customApiKeys.geminiEnabled !== false ? '(✅ Aktif Dicentang)' : '(⚪ Nonaktif)'}</option>
+                  <option value="nvidia">🟢 NVIDIA NIM (DeepSeek-R1 / Llama-3.3) {customApiKeys.nvidiaEnabled ? '(✅ Aktif Dicentang)' : '(⚪ Nonaktif)'}</option>
+                  <option value="mistral">🌪️ Mistral AI (Large & Codestral) {customApiKeys.mistralEnabled ? '(✅ Aktif Dicentang)' : '(⚪ Nonaktif)'}</option>
+                  <option value="openrouter">🪐 OpenRouter AI (20+ Model Gratis) {customApiKeys.openrouterEnabled ? '(✅ Aktif Dicentang)' : '(⚪ Nonaktif)'}</option>
+                  <option value="groq">⚡ Groq Cloud (Llama-3.3 70B Ultra Fast) {customApiKeys.groqEnabled ? '(✅ Aktif Dicentang)' : '(⚪ Nonaktif)'}</option>
+                  <option value="deepseek">🧠 DeepSeek AI (R1 & V3) {customApiKeys.deepseekEnabled ? '(✅ Aktif Dicentang)' : '(⚪ Nonaktif)'}</option>
+                  <option value="prism">🔮 Prism by OpenAI (GPT-4o) {customApiKeys.prismEnabled ? '(✅ Aktif Dicentang)' : '(⚪ Nonaktif)'}</option>
+                  <option value="cohere">💬 Cohere AI (Command R+) {customApiKeys.cohereEnabled ? '(✅ Aktif Dicentang)' : '(⚪ Nonaktif)'}</option>
                 </select>
                 <p className="text-[11px] text-slate-300 leading-tight pt-1">
-                  *Dengan pilihan <strong>Synergy Multi-AI</strong>, sistem secara otomatis merutekan prompt ke engine terbaik dan melakukan failover otomatis jika ada server yang mengalami lonjakan trafik.
+                  *Dengan pilihan <strong>Synergy Multi-AI</strong>, sistem hanya menggunakan AI yang <strong>dicentang (✓)</strong> di bawah. AI yang centangnya dimatikan akan sepenuhnya dilewati (tidak dipanggil).
                 </p>
               </div>
 
@@ -488,63 +588,163 @@ export default function SettingsPage() {
                 {/* ========================================================================= */}
                 {(apiCategory === 'all' || apiCategory === 'llm') && (
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-xs font-extrabold text-slate-800 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
-                      <Cpu className="w-4 h-4 text-emerald-600" /> Kategori 1: AI Reasoning & LLM Engines
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-extrabold text-slate-800 bg-slate-100 p-2.5 rounded-xl border border-slate-200">
+                      <div className="flex items-center gap-2">
+                        <Cpu className="w-4 h-4 text-emerald-600" />
+                        <span>Kategori 1: AI Reasoning & LLM Engines</span>
+                        <span className="text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full">
+                          {getActiveAiCount()} / 8 AI Aktif
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => toggleAllAiEngines(true)}
+                          className="text-[11px] font-bold bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-300 px-2.5 py-1 rounded-lg transition-colors shadow-2xs cursor-pointer"
+                        >
+                          ✓ Centang Semua
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleAllAiEngines(false)}
+                          className="text-[11px] font-bold bg-white text-rose-700 hover:bg-rose-50 border border-rose-300 px-2.5 py-1 rounded-lg transition-colors shadow-2xs cursor-pointer"
+                        >
+                          ✕ Hapus Semua
+                        </button>
+                        <button
+                          type="button"
+                          onClick={toggleConfiguredAiOnly}
+                          className="text-[11px] font-bold bg-white text-slate-700 hover:bg-slate-100 border border-slate-300 px-2.5 py-1 rounded-lg transition-colors shadow-2xs cursor-pointer"
+                        >
+                          ⚡ Sesuai Key
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2.5">
+                      <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong>Petunjuk Pemilihan AI:</strong> Centang (✓) pada kotak di setiap AI yang ingin Anda pakai. Jika kotak centang dinonaktifkan (kosong), sistem All-in-One tidak akan memanggil AI tersebut sama sekali dan otomatis dialihkan ke AI alternatif lain yang dicentang.
+                      </div>
                     </div>
 
                     {/* Google AI Studio / Gemini */}
                     {('gemini google ai studio'.includes(apiSearchQuery.toLowerCase())) && (
-                      <div className="p-3.5 bg-emerald-950/10 border border-emerald-500/30 rounded-xl space-y-2">
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                          <span className="flex items-center gap-1.5 font-extrabold text-slate-900">
-                            ♊ Google AI Studio (Gemini API)
-                            <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-300">BAWAAN SISTEM / GRATIS</span>
-                          </span>
-                          <a 
-                            href="https://aistudio.google.com/apikey" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-[11px] text-emerald-700 hover:text-emerald-800 hover:underline font-extrabold flex items-center gap-1 bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-300 shadow-xs"
-                          >
-                            Dapatkan Key Gemini <ExternalLink className="w-3 h-3" />
-                          </a>
+                      <div className={`p-4 rounded-2xl border transition-all duration-200 space-y-2.5 ${
+                        customApiKeys.geminiEnabled !== false
+                          ? 'bg-emerald-950/10 border-emerald-500/40 shadow-xs ring-1 ring-emerald-500/20'
+                          : 'bg-slate-100/80 border-slate-300 opacity-70'
+                      }`}>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={customApiKeys.geminiEnabled !== false}
+                              onChange={(e) => setCustomApiKeys({ ...customApiKeys, geminiEnabled: e.target.checked })}
+                              className="w-4 h-4 text-emerald-600 rounded-md border-slate-300 focus:ring-emerald-500 cursor-pointer accent-emerald-600"
+                            />
+                            <span className={`text-xs font-black flex items-center gap-1.5 ${
+                              customApiKeys.geminiEnabled !== false ? 'text-slate-900' : 'text-slate-500 line-through'
+                            }`}>
+                              ♊ Google AI Studio (Gemini API)
+                            </span>
+                            {customApiKeys.geminiEnabled !== false ? (
+                              <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3 text-emerald-600" /> AKTIF DIPAKAI
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
+                                ✕ NONAKTIF (DILEWATI)
+                              </span>
+                            )}
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-300 hidden sm:inline-block">
+                              BAWAAN SISTEM / GRATIS
+                            </span>
+                            <a 
+                              href="https://aistudio.google.com/apikey" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-[11px] text-emerald-700 hover:text-emerald-800 hover:underline font-extrabold flex items-center gap-1 bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-300 shadow-xs"
+                            >
+                              Dapatkan Key Gemini <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
                         </div>
                         <input
                           type="password"
+                          disabled={customApiKeys.geminiEnabled === false}
                           value={customApiKeys.geminiApiKey || ''}
                           onChange={(e) => setCustomApiKeys({ ...customApiKeys, geminiApiKey: e.target.value })}
-                          placeholder="AIzaSyxxxxxxxxxxxxxxxxxxxxxxxx (Opsional - Server Default Aktif)"
-                          className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg font-mono outline-none focus:ring-2 focus:ring-emerald-500"
+                          placeholder={customApiKeys.geminiEnabled !== false ? "AIzaSyxxxxxxxxxxxxxxxxxxxxxxxx (Opsional - Server Default Aktif)" : "(Google Gemini dinonaktifkan — centang untuk mengaktifkan)"}
+                          className={`w-full px-3 py-2 text-xs border rounded-xl font-mono outline-none transition-all ${
+                            customApiKeys.geminiEnabled !== false
+                              ? 'bg-white border-slate-300 focus:ring-2 focus:ring-emerald-500 text-slate-800'
+                              : 'bg-slate-200/60 border-slate-300 text-slate-400 cursor-not-allowed'
+                          }`}
                         />
                         <p className="text-[10px] text-slate-600">
-                          Model bawaan sistem utama (Gemini 2.5 Flash). Masukkan key pribadi jika ingin kuota khusus akun Google Anda. URL: <code className="text-slate-800 font-mono">https://aistudio.google.com/apikey</code>
+                          Model bawaan sistem utama (Gemini Flash). Jika centang dimatikan, sistem beralih penuh ke AI alternatif lain yang Anda aktifkan. URL: <code className="text-slate-800 font-mono">https://aistudio.google.com/apikey</code>
                         </p>
                       </div>
                     )}
 
                     {/* NVIDIA NIM */}
                     {('nvidia nim deepseek llama'.includes(apiSearchQuery.toLowerCase())) && (
-                      <div className="p-3.5 bg-emerald-950/10 border border-emerald-500/30 rounded-xl space-y-2">
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                          <span className="flex items-center gap-1.5 font-extrabold text-slate-900">
-                            🟢 NVIDIA NIM (build.nvidia.com)
-                            <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-300">100% GRATIS (1,000 Credits)</span>
-                          </span>
-                          <a 
-                            href="https://build.nvidia.com/settings/api-keys" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-[11px] text-emerald-700 hover:text-emerald-800 hover:underline font-extrabold flex items-center gap-1 bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-300 shadow-xs"
-                          >
-                            Dapatkan Key NVIDIA <ExternalLink className="w-3 h-3" />
-                          </a>
+                      <div className={`p-4 rounded-2xl border transition-all duration-200 space-y-2.5 ${
+                        customApiKeys.nvidiaEnabled
+                          ? 'bg-emerald-950/10 border-emerald-500/40 shadow-xs ring-1 ring-emerald-500/20'
+                          : 'bg-slate-100/80 border-slate-300 opacity-70'
+                      }`}>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(customApiKeys.nvidiaEnabled)}
+                              onChange={(e) => setCustomApiKeys({ ...customApiKeys, nvidiaEnabled: e.target.checked })}
+                              className="w-4 h-4 text-emerald-600 rounded-md border-slate-300 focus:ring-emerald-500 cursor-pointer accent-emerald-600"
+                            />
+                            <span className={`text-xs font-black flex items-center gap-1.5 ${
+                              customApiKeys.nvidiaEnabled ? 'text-slate-900' : 'text-slate-500 line-through'
+                            }`}>
+                              🟢 NVIDIA NIM (build.nvidia.com)
+                            </span>
+                            {customApiKeys.nvidiaEnabled ? (
+                              <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3 text-emerald-600" /> AKTIF DIPAKAI
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
+                                ✕ NONAKTIF (DILEWATI)
+                              </span>
+                            )}
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-300 hidden sm:inline-block">
+                              100% GRATIS (1,000 Credits)
+                            </span>
+                            <a 
+                              href="https://build.nvidia.com/settings/api-keys" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-[11px] text-emerald-700 hover:text-emerald-800 hover:underline font-extrabold flex items-center gap-1 bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-300 shadow-xs"
+                            >
+                              Dapatkan Key NVIDIA <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
                         </div>
                         <input
                           type="password"
+                          disabled={!customApiKeys.nvidiaEnabled}
                           value={customApiKeys.nvidiaApiKey || ''}
                           onChange={(e) => setCustomApiKeys({ ...customApiKeys, nvidiaApiKey: e.target.value })}
-                          placeholder="nvapi-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                          className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg font-mono outline-none focus:ring-2 focus:ring-emerald-500"
+                          placeholder={customApiKeys.nvidiaEnabled ? "nvapi-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" : "(NVIDIA NIM dinonaktifkan — centang untuk mengaktifkan)"}
+                          className={`w-full px-3 py-2 text-xs border rounded-xl font-mono outline-none transition-all ${
+                            customApiKeys.nvidiaEnabled
+                              ? 'bg-white border-slate-300 focus:ring-2 focus:ring-emerald-500 text-slate-800'
+                              : 'bg-slate-200/60 border-slate-300 text-slate-400 cursor-not-allowed'
+                          }`}
                         />
                         <p className="text-[10px] text-slate-600">
                           Microservices inferensi dari NVIDIA untuk model DeepSeek-R1, Llama 3.3 70B, & Mistral. URL: <code className="text-slate-800 font-mono">https://build.nvidia.com/settings/api-keys</code>
@@ -554,27 +754,59 @@ export default function SettingsPage() {
 
                     {/* Mistral AI */}
                     {('mistral codestral pixtral'.includes(apiSearchQuery.toLowerCase())) && (
-                      <div className="p-3.5 bg-amber-950/10 border border-amber-500/30 rounded-xl space-y-2">
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                          <span className="flex items-center gap-1.5 font-extrabold text-slate-900">
-                            🌪️ Mistral AI (console.mistral.ai)
-                            <span className="text-[10px] font-black bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-300">FREE TIER / EXPERIMENT</span>
-                          </span>
-                          <a 
-                            href="https://console.mistral.ai/" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-[11px] text-amber-800 hover:text-amber-900 hover:underline font-extrabold flex items-center gap-1 bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300 shadow-xs"
-                          >
-                            Dapatkan Key Mistral <ExternalLink className="w-3 h-3" />
-                          </a>
+                      <div className={`p-4 rounded-2xl border transition-all duration-200 space-y-2.5 ${
+                        customApiKeys.mistralEnabled
+                          ? 'bg-amber-950/10 border-amber-500/40 shadow-xs ring-1 ring-amber-500/20'
+                          : 'bg-slate-100/80 border-slate-300 opacity-70'
+                      }`}>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(customApiKeys.mistralEnabled)}
+                              onChange={(e) => setCustomApiKeys({ ...customApiKeys, mistralEnabled: e.target.checked })}
+                              className="w-4 h-4 text-amber-600 rounded-md border-slate-300 focus:ring-amber-500 cursor-pointer accent-amber-600"
+                            />
+                            <span className={`text-xs font-black flex items-center gap-1.5 ${
+                              customApiKeys.mistralEnabled ? 'text-slate-900' : 'text-slate-500 line-through'
+                            }`}>
+                              🌪️ Mistral AI (console.mistral.ai)
+                            </span>
+                            {customApiKeys.mistralEnabled ? (
+                              <span className="text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3 text-amber-600" /> AKTIF DIPAKAI
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
+                                ✕ NONAKTIF (DILEWATI)
+                              </span>
+                            )}
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-300 hidden sm:inline-block">
+                              FREE TIER / EXPERIMENT
+                            </span>
+                            <a 
+                              href="https://console.mistral.ai/" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-[11px] text-amber-800 hover:text-amber-900 hover:underline font-extrabold flex items-center gap-1 bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300 shadow-xs"
+                            >
+                              Dapatkan Key Mistral <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
                         </div>
                         <input
                           type="password"
+                          disabled={!customApiKeys.mistralEnabled}
                           value={customApiKeys.mistralApiKey || ''}
                           onChange={(e) => setCustomApiKeys({ ...customApiKeys, mistralApiKey: e.target.value })}
-                          placeholder="mis_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                          className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg font-mono outline-none focus:ring-2 focus:ring-amber-500"
+                          placeholder={customApiKeys.mistralEnabled ? "mis_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" : "(Mistral AI dinonaktifkan — centang untuk mengaktifkan)"}
+                          className={`w-full px-3 py-2 text-xs border rounded-xl font-mono outline-none transition-all ${
+                            customApiKeys.mistralEnabled
+                              ? 'bg-white border-slate-300 focus:ring-2 focus:ring-amber-500 text-slate-800'
+                              : 'bg-slate-200/60 border-slate-300 text-slate-400 cursor-not-allowed'
+                          }`}
                         />
                         <p className="text-[10px] text-slate-600">
                           Model penalaran Eropa performa tinggi: Mistral Large, Codestral, dan Pixtral. URL: <code className="text-slate-800 font-mono">https://console.mistral.ai/</code>
@@ -584,27 +816,59 @@ export default function SettingsPage() {
 
                     {/* Groq Cloud */}
                     {('groq llama mixtral ultra fast'.includes(apiSearchQuery.toLowerCase())) && (
-                      <div className="p-3.5 bg-orange-950/10 border border-orange-500/30 rounded-xl space-y-2">
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                          <span className="flex items-center gap-1.5 font-extrabold text-slate-900">
-                            ⚡ Groq Cloud (Ultra Fast LPU)
-                            <span className="text-[10px] font-black bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full border border-orange-300">100% GRATIS</span>
-                          </span>
-                          <a 
-                            href="https://console.groq.com/keys" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-[11px] text-orange-800 hover:text-orange-900 hover:underline font-extrabold flex items-center gap-1 bg-orange-100 px-2.5 py-1 rounded-lg border border-orange-300 shadow-xs"
-                          >
-                            Dapatkan Key Groq <ExternalLink className="w-3 h-3" />
-                          </a>
+                      <div className={`p-4 rounded-2xl border transition-all duration-200 space-y-2.5 ${
+                        customApiKeys.groqEnabled
+                          ? 'bg-orange-950/10 border-orange-500/40 shadow-xs ring-1 ring-orange-500/20'
+                          : 'bg-slate-100/80 border-slate-300 opacity-70'
+                      }`}>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(customApiKeys.groqEnabled)}
+                              onChange={(e) => setCustomApiKeys({ ...customApiKeys, groqEnabled: e.target.checked })}
+                              className="w-4 h-4 text-orange-600 rounded-md border-slate-300 focus:ring-orange-500 cursor-pointer accent-orange-600"
+                            />
+                            <span className={`text-xs font-black flex items-center gap-1.5 ${
+                              customApiKeys.groqEnabled ? 'text-slate-900' : 'text-slate-500 line-through'
+                            }`}>
+                              ⚡ Groq Cloud (Ultra Fast LPU)
+                            </span>
+                            {customApiKeys.groqEnabled ? (
+                              <span className="text-[10px] font-black bg-orange-100 text-orange-800 border border-orange-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3 text-orange-600" /> AKTIF DIPAKAI
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
+                                ✕ NONAKTIF (DILEWATI)
+                              </span>
+                            )}
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full border border-orange-300 hidden sm:inline-block">
+                              100% GRATIS
+                            </span>
+                            <a 
+                              href="https://console.groq.com/keys" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-[11px] text-orange-800 hover:text-orange-900 hover:underline font-extrabold flex items-center gap-1 bg-orange-100 px-2.5 py-1 rounded-lg border border-orange-300 shadow-xs"
+                            >
+                              Dapatkan Key Groq <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
                         </div>
                         <input
                           type="password"
+                          disabled={!customApiKeys.groqEnabled}
                           value={customApiKeys.groqApiKey || ''}
                           onChange={(e) => setCustomApiKeys({ ...customApiKeys, groqApiKey: e.target.value })}
-                          placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                          className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg font-mono outline-none focus:ring-2 focus:ring-orange-500"
+                          placeholder={customApiKeys.groqEnabled ? "gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" : "(Groq Cloud dinonaktifkan — centang untuk mengaktifkan)"}
+                          className={`w-full px-3 py-2 text-xs border rounded-xl font-mono outline-none transition-all ${
+                            customApiKeys.groqEnabled
+                              ? 'bg-white border-slate-300 focus:ring-2 focus:ring-orange-500 text-slate-800'
+                              : 'bg-slate-200/60 border-slate-300 text-slate-400 cursor-not-allowed'
+                          }`}
                         />
                         <p className="text-[10px] text-slate-600">
                           Mesin inferensi tercepat di dunia untuk perbaikan tata bahasa dan parafrase skripsi instan. URL: <code className="text-slate-800 font-mono">https://console.groq.com/keys</code>
@@ -614,27 +878,59 @@ export default function SettingsPage() {
 
                     {/* DeepSeek */}
                     {('deepseek reasoner r1 v3'.includes(apiSearchQuery.toLowerCase())) && (
-                      <div className="p-3.5 bg-blue-950/10 border border-blue-500/30 rounded-xl space-y-2">
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                          <span className="flex items-center gap-1.5 font-extrabold text-slate-900">
-                            🧠 DeepSeek AI (R1 & V3)
-                            <span className="text-[10px] font-black bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full border border-blue-300">GRATIS TRIAL</span>
-                          </span>
-                          <a 
-                            href="https://platform.deepseek.com/api_keys" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-[11px] text-blue-800 hover:text-blue-900 hover:underline font-extrabold flex items-center gap-1 bg-blue-100 px-2.5 py-1 rounded-lg border border-blue-300 shadow-xs"
-                          >
-                            Dapatkan Key DeepSeek <ExternalLink className="w-3 h-3" />
-                          </a>
+                      <div className={`p-4 rounded-2xl border transition-all duration-200 space-y-2.5 ${
+                        customApiKeys.deepseekEnabled
+                          ? 'bg-blue-950/10 border-blue-500/40 shadow-xs ring-1 ring-blue-500/20'
+                          : 'bg-slate-100/80 border-slate-300 opacity-70'
+                      }`}>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(customApiKeys.deepseekEnabled)}
+                              onChange={(e) => setCustomApiKeys({ ...customApiKeys, deepseekEnabled: e.target.checked })}
+                              className="w-4 h-4 text-blue-600 rounded-md border-slate-300 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                            />
+                            <span className={`text-xs font-black flex items-center gap-1.5 ${
+                              customApiKeys.deepseekEnabled ? 'text-slate-900' : 'text-slate-500 line-through'
+                            }`}>
+                              🧠 DeepSeek AI (R1 & V3)
+                            </span>
+                            {customApiKeys.deepseekEnabled ? (
+                              <span className="text-[10px] font-black bg-blue-100 text-blue-800 border border-blue-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3 text-blue-600" /> AKTIF DIPAKAI
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
+                                ✕ NONAKTIF (DILEWATI)
+                              </span>
+                            )}
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full border border-blue-300 hidden sm:inline-block">
+                              GRATIS TRIAL
+                            </span>
+                            <a 
+                              href="https://platform.deepseek.com/api_keys" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-[11px] text-blue-800 hover:text-blue-900 hover:underline font-extrabold flex items-center gap-1 bg-blue-100 px-2.5 py-1 rounded-lg border border-blue-300 shadow-xs"
+                            >
+                              Dapatkan Key DeepSeek <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
                         </div>
                         <input
                           type="password"
+                          disabled={!customApiKeys.deepseekEnabled}
                           value={customApiKeys.deepseekApiKey || ''}
                           onChange={(e) => setCustomApiKeys({ ...customApiKeys, deepseekApiKey: e.target.value })}
-                          placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                          className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg font-mono outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder={customApiKeys.deepseekEnabled ? "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" : "(DeepSeek dinonaktifkan — centang untuk mengaktifkan)"}
+                          className={`w-full px-3 py-2 text-xs border rounded-xl font-mono outline-none transition-all ${
+                            customApiKeys.deepseekEnabled
+                              ? 'bg-white border-slate-300 focus:ring-2 focus:ring-blue-500 text-slate-800'
+                              : 'bg-slate-200/60 border-slate-300 text-slate-400 cursor-not-allowed'
+                          }`}
                         />
                         <p className="text-[10px] text-slate-600">
                           Spesialisasi perumusan masalah kompleks dan analisis metodologi statistik. URL: <code className="text-slate-800 font-mono">https://platform.deepseek.com/api_keys</code>
@@ -644,27 +940,59 @@ export default function SettingsPage() {
 
                     {/* OpenRouter */}
                     {('openrouter claude llama qwen'.includes(apiSearchQuery.toLowerCase())) && (
-                      <div className="p-3.5 bg-indigo-950/10 border border-indigo-500/30 rounded-xl space-y-2">
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                          <span className="flex items-center gap-1.5 font-extrabold text-slate-900">
-                            🪐 OpenRouter AI
-                            <span className="text-[10px] font-black bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-300">100% GRATIS (20+ Free Models)</span>
-                          </span>
-                          <a 
-                            href="https://openrouter.ai/keys" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-[11px] text-indigo-700 hover:text-indigo-800 hover:underline font-extrabold flex items-center gap-1 bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-300 shadow-xs"
-                          >
-                            Dapatkan Key OpenRouter <ExternalLink className="w-3 h-3" />
-                          </a>
+                      <div className={`p-4 rounded-2xl border transition-all duration-200 space-y-2.5 ${
+                        customApiKeys.openrouterEnabled
+                          ? 'bg-indigo-950/10 border-indigo-500/40 shadow-xs ring-1 ring-indigo-500/20'
+                          : 'bg-slate-100/80 border-slate-300 opacity-70'
+                      }`}>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(customApiKeys.openrouterEnabled)}
+                              onChange={(e) => setCustomApiKeys({ ...customApiKeys, openrouterEnabled: e.target.checked })}
+                              className="w-4 h-4 text-indigo-600 rounded-md border-slate-300 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                            />
+                            <span className={`text-xs font-black flex items-center gap-1.5 ${
+                              customApiKeys.openrouterEnabled ? 'text-slate-900' : 'text-slate-500 line-through'
+                            }`}>
+                              🪐 OpenRouter AI
+                            </span>
+                            {customApiKeys.openrouterEnabled ? (
+                              <span className="text-[10px] font-black bg-indigo-100 text-indigo-800 border border-indigo-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3 text-indigo-600" /> AKTIF DIPAKAI
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
+                                ✕ NONAKTIF (DILEWATI)
+                              </span>
+                            )}
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-300 hidden sm:inline-block">
+                              100% GRATIS (20+ Free Models)
+                            </span>
+                            <a 
+                              href="https://openrouter.ai/keys" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-[11px] text-indigo-700 hover:text-indigo-800 hover:underline font-extrabold flex items-center gap-1 bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-300 shadow-xs"
+                            >
+                              Dapatkan Key OpenRouter <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
                         </div>
                         <input
                           type="password"
+                          disabled={!customApiKeys.openrouterEnabled}
                           value={customApiKeys.openrouterApiKey || ''}
                           onChange={(e) => setCustomApiKeys({ ...customApiKeys, openrouterApiKey: e.target.value })}
-                          placeholder="sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                          className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg font-mono outline-none focus:ring-2 focus:ring-indigo-500"
+                          placeholder={customApiKeys.openrouterEnabled ? "sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" : "(OpenRouter dinonaktifkan — centang untuk mengaktifkan)"}
+                          className={`w-full px-3 py-2 text-xs border rounded-xl font-mono outline-none transition-all ${
+                            customApiKeys.openrouterEnabled
+                              ? 'bg-white border-slate-300 focus:ring-2 focus:ring-indigo-500 text-slate-800'
+                              : 'bg-slate-200/60 border-slate-300 text-slate-400 cursor-not-allowed'
+                          }`}
                         />
                         <p className="text-[10px] text-slate-600">
                           Gateway puluhan model open source gratis tanpa kartu kredit. URL: <code className="text-slate-800 font-mono">https://openrouter.ai/keys</code>
@@ -674,27 +1002,59 @@ export default function SettingsPage() {
 
                     {/* Prism / OpenAI */}
                     {('prism openai gpt-4o chatgpt'.includes(apiSearchQuery.toLowerCase())) && (
-                      <div className="p-3.5 bg-purple-950/10 border border-purple-500/30 rounded-xl space-y-2">
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                          <span className="flex items-center gap-1.5 font-extrabold text-slate-900">
-                            🔮 Prism by OpenAI (GPT-4o)
-                            <span className="text-[10px] font-black bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full border border-purple-300">OPENAI COMPATIBLE</span>
-                          </span>
-                          <a 
-                            href="https://platform.openai.com/api-keys" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-[11px] text-purple-700 hover:text-purple-800 hover:underline font-extrabold flex items-center gap-1 bg-purple-100 px-2.5 py-1 rounded-lg border border-purple-300 shadow-xs"
-                          >
-                            Dapatkan Key OpenAI <ExternalLink className="w-3 h-3" />
-                          </a>
+                      <div className={`p-4 rounded-2xl border transition-all duration-200 space-y-2.5 ${
+                        customApiKeys.prismEnabled
+                          ? 'bg-purple-950/10 border-purple-500/40 shadow-xs ring-1 ring-purple-500/20'
+                          : 'bg-slate-100/80 border-slate-300 opacity-70'
+                      }`}>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(customApiKeys.prismEnabled)}
+                              onChange={(e) => setCustomApiKeys({ ...customApiKeys, prismEnabled: e.target.checked })}
+                              className="w-4 h-4 text-purple-600 rounded-md border-slate-300 focus:ring-purple-500 cursor-pointer accent-purple-600"
+                            />
+                            <span className={`text-xs font-black flex items-center gap-1.5 ${
+                              customApiKeys.prismEnabled ? 'text-slate-900' : 'text-slate-500 line-through'
+                            }`}>
+                              🔮 Prism by OpenAI (GPT-4o)
+                            </span>
+                            {customApiKeys.prismEnabled ? (
+                              <span className="text-[10px] font-black bg-purple-100 text-purple-800 border border-purple-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3 text-purple-600" /> AKTIF DIPAKAI
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
+                                ✕ NONAKTIF (DILEWATI)
+                              </span>
+                            )}
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full border border-purple-300 hidden sm:inline-block">
+                              OPENAI COMPATIBLE
+                            </span>
+                            <a 
+                              href="https://platform.openai.com/api-keys" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-[11px] text-purple-700 hover:text-purple-800 hover:underline font-extrabold flex items-center gap-1 bg-purple-100 px-2.5 py-1 rounded-lg border border-purple-300 shadow-xs"
+                            >
+                              Dapatkan Key OpenAI <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
                         </div>
                         <input
                           type="password"
+                          disabled={!customApiKeys.prismEnabled}
                           value={customApiKeys.prismApiKey || ''}
                           onChange={(e) => setCustomApiKeys({ ...customApiKeys, prismApiKey: e.target.value })}
-                          placeholder="sk-proj-xxxxxxxxxxxxxxxxxxxxxxxx"
-                          className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg font-mono outline-none focus:ring-2 focus:ring-purple-500"
+                          placeholder={customApiKeys.prismEnabled ? "sk-proj-xxxxxxxxxxxxxxxxxxxxxxxx" : "(OpenAI / Prism dinonaktifkan — centang untuk mengaktifkan)"}
+                          className={`w-full px-3 py-2 text-xs border rounded-xl font-mono outline-none transition-all ${
+                            customApiKeys.prismEnabled
+                              ? 'bg-white border-slate-300 focus:ring-2 focus:ring-purple-500 text-slate-800'
+                              : 'bg-slate-200/60 border-slate-300 text-slate-400 cursor-not-allowed'
+                          }`}
                         />
                         <p className="text-[10px] text-slate-600">
                           Sintesis draft akademik menggunakan model GPT-4o & GPT-4o-mini. URL: <code className="text-slate-800 font-mono">https://platform.openai.com/api-keys</code>
@@ -704,27 +1064,59 @@ export default function SettingsPage() {
 
                     {/* Cohere Command */}
                     {('cohere command r plus'.includes(apiSearchQuery.toLowerCase())) && (
-                      <div className="p-3.5 bg-teal-950/10 border border-teal-500/30 rounded-xl space-y-2">
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                          <span className="flex items-center gap-1.5 font-extrabold text-slate-900">
-                            💬 Cohere AI (Command R+)
-                            <span className="text-[10px] font-black bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full border border-teal-300">TRIAL FREE KEY</span>
-                          </span>
-                          <a 
-                            href="https://dashboard.cohere.com/api-keys" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-[11px] text-teal-800 hover:text-teal-900 hover:underline font-extrabold flex items-center gap-1 bg-teal-100 px-2.5 py-1 rounded-lg border border-teal-300 shadow-xs"
-                          >
-                            Dapatkan Key Cohere <ExternalLink className="w-3 h-3" />
-                          </a>
+                      <div className={`p-4 rounded-2xl border transition-all duration-200 space-y-2.5 ${
+                        customApiKeys.cohereEnabled
+                          ? 'bg-teal-950/10 border-teal-500/40 shadow-xs ring-1 ring-teal-500/20'
+                          : 'bg-slate-100/80 border-slate-300 opacity-70'
+                      }`}>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(customApiKeys.cohereEnabled)}
+                              onChange={(e) => setCustomApiKeys({ ...customApiKeys, cohereEnabled: e.target.checked })}
+                              className="w-4 h-4 text-teal-600 rounded-md border-slate-300 focus:ring-teal-500 cursor-pointer accent-teal-600"
+                            />
+                            <span className={`text-xs font-black flex items-center gap-1.5 ${
+                              customApiKeys.cohereEnabled ? 'text-slate-900' : 'text-slate-500 line-through'
+                            }`}>
+                              💬 Cohere AI (Command R+)
+                            </span>
+                            {customApiKeys.cohereEnabled ? (
+                              <span className="text-[10px] font-black bg-teal-100 text-teal-800 border border-teal-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3 text-teal-600" /> AKTIF DIPAKAI
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
+                                ✕ NONAKTIF (DILEWATI)
+                              </span>
+                            )}
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full border border-teal-300 hidden sm:inline-block">
+                              TRIAL FREE KEY
+                            </span>
+                            <a 
+                              href="https://dashboard.cohere.com/api-keys" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-[11px] text-teal-800 hover:text-teal-900 hover:underline font-extrabold flex items-center gap-1 bg-teal-100 px-2.5 py-1 rounded-lg border border-teal-300 shadow-xs"
+                            >
+                              Dapatkan Key Cohere <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
                         </div>
                         <input
                           type="password"
+                          disabled={!customApiKeys.cohereEnabled}
                           value={customApiKeys.cohereApiKey || ''}
                           onChange={(e) => setCustomApiKeys({ ...customApiKeys, cohereApiKey: e.target.value })}
-                          placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                          className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg font-mono outline-none focus:ring-2 focus:ring-teal-500"
+                          placeholder={customApiKeys.cohereEnabled ? "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" : "(Cohere dinonaktifkan — centang untuk mengaktifkan)"}
+                          className={`w-full px-3 py-2 text-xs border rounded-xl font-mono outline-none transition-all ${
+                            customApiKeys.cohereEnabled
+                              ? 'bg-white border-slate-300 focus:ring-2 focus:ring-teal-500 text-slate-800'
+                              : 'bg-slate-200/60 border-slate-300 text-slate-400 cursor-not-allowed'
+                          }`}
                         />
                         <p className="text-[10px] text-slate-600">
                           Model penalaran Retrieval-Augmented Generation (RAG) dan Command R+. URL: <code className="text-slate-800 font-mono">https://dashboard.cohere.com/api-keys</code>

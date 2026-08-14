@@ -1,5 +1,18 @@
 import { Request, Response } from 'express';
 import { generateBibliography as aiGenerateBibliography } from '../services/aiService.js';
+import { 
+  searchPubMed, 
+  searchOpenAlex, 
+  searchTavily, 
+  rerankWithCohere, 
+  scrapeUrlToMarkdown, 
+  computeEmbedding, 
+  queryQdrantVector, 
+  upsertToQdrant,
+  queryMcpServer,
+  getActiveApiKeys,
+  AcademicSearchResult
+} from '../services/unifiedIntegrationService.js';
 
 const citations: any[] = [];
 
@@ -49,12 +62,11 @@ export const generateBibliography = async (req: Request, res: Response) => {
 
 export const importFromScholar = (req: Request, res: Response) => {
   const { query } = req.body;
-  // Mock Google Scholar import
   const imported = {
     id: Date.now().toString(),
     title: `Imported paper for query: ${query}`,
     authors: 'John Doe',
-    year: 2023,
+    year: new Date().getFullYear(),
     source: 'Google Scholar'
   };
   citations.push(imported);
@@ -66,6 +78,9 @@ export const getStyles = (req: Request, res: Response) => {
   res.json({ styles });
 };
 
+/**
+ * Direct Europe PMC proxy
+ */
 export const searchEuropePmcHandler = async (req: Request, res: Response) => {
   try {
     const query = String(req.query.query || '');
@@ -109,3 +124,155 @@ export const searchEuropePmcHandler = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Multi-Source Unified Academic Search with Europe PMC, PubMed (NCBI API Key),
+ * OpenAlex (OpenAlex API Key), Tavily AI Search (Tavily Key), and Cohere Rerank (Cohere Key).
+ */
+export const searchUnifiedAcademic = async (req: Request, res: Response) => {
+  try {
+    const query = String(req.query.query || req.body.query || '');
+    if (!query.trim()) {
+      return res.status(400).json({ error: 'Query pencarian diperlukan' });
+    }
+
+    const limit = Number(req.query.limit || req.body.limit) || 12;
+    const keys = getActiveApiKeys();
+
+    // 1. Concurrent Multi-Source Fetching
+    const [pubmedDocs, openAlexDocs, tavilyDocs] = await Promise.all([
+      searchPubMed(query, keys, 8),
+      searchOpenAlex(query, keys, 8),
+      searchTavily(query, keys, 4)
+    ]);
+
+    // Also fetch Europe PMC
+    let europePmcDocs: AcademicSearchResult[] = [];
+    try {
+      const epmcRes = await fetch(`https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=${encodeURIComponent(query)}&format=json&pageSize=8&resultType=core`);
+      if (epmcRes.ok) {
+        const epmcData = await epmcRes.json();
+        const results = epmcData?.resultList?.result || [];
+        europePmcDocs = results.map((r: any) => ({
+          id: `epmc-${r.id}`,
+          source: 'Europe PMC' as const,
+          title: r.title?.replace(/\.$/, '') || 'Untitled Paper',
+          authors: r.authorString || 'Unknown Author',
+          year: r.pubYear || new Date().getFullYear().toString(),
+          journalOrPublisher: r.journalTitle || r.journalInfo?.journal?.title || 'Europe PMC Journal',
+          abstract: r.abstractText?.replace(/<[^>]+>/g, '') || 'Abstrak tersedia di portal resmi Europe PMC.',
+          doi: r.doi,
+          url: r.doi ? `https://doi.org/${r.doi}` : `https://europepmc.org/article/${r.source}/${r.id}`,
+          isOpenAccess: r.isOpenAccess === 'Y',
+          citationCount: r.citedByCount || 0
+        }));
+      }
+    } catch (e) {
+      console.warn('Europe PMC search in unified failed:', e);
+    }
+
+    // Merge all sources
+    let allDocuments: AcademicSearchResult[] = [
+      ...europePmcDocs,
+      ...pubmedDocs,
+      ...openAlexDocs,
+      ...tavilyDocs
+    ];
+
+    // Deduplicate by title similarity
+    const uniqueDocs: AcademicSearchResult[] = [];
+    const seenTitles = new Set<string>();
+    for (const doc of allDocuments) {
+      const normalizedTitle = doc.title.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 40);
+      if (!seenTitles.has(normalizedTitle)) {
+        seenTitles.add(normalizedTitle);
+        uniqueDocs.push(doc);
+      }
+    }
+
+    // 2. Cohere Rerank if API Key configured
+    const rerankedDocs = await rerankWithCohere(query, uniqueDocs, keys);
+    const finalResults = rerankedDocs.slice(0, limit);
+
+    return res.json({
+      query,
+      totalFound: finalResults.length,
+      rerankedWithCohere: Boolean(keys.cohereRerankApiKey),
+      sourcesUsed: {
+        europePmc: europePmcDocs.length > 0,
+        pubmed: pubmedDocs.length > 0,
+        openAlex: openAlexDocs.length > 0,
+        tavily: tavilyDocs.length > 0
+      },
+      results: finalResults
+    });
+  } catch (error: any) {
+    console.error('Unified Academic Search Error:', error);
+    return res.status(500).json({ error: 'Terjadi kesalahan saat memproses multi-source search', details: error.message });
+  }
+};
+
+/**
+ * Web Scraper API using Firecrawl or Jina Reader
+ */
+export const scrapeAcademicUrl = async (req: Request, res: Response) => {
+  try {
+    const url = String(req.body.url || req.query.url || '');
+    if (!url || !url.startsWith('http')) {
+      return res.status(400).json({ error: 'URL valid diperlukan (http:// atau https://)' });
+    }
+
+    const keys = getActiveApiKeys();
+    const result = await scrapeUrlToMarkdown(url, keys);
+    return res.json(result);
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Gagal melakukan scraping URL', details: error.message });
+  }
+};
+
+/**
+ * Vector Search & Embeddings API (Qdrant + Voyage AI / Jina)
+ */
+export const vectorSearchHandler = async (req: Request, res: Response) => {
+  try {
+    const { queryText, limit = 5, collectionName = 'thesis_documents' } = req.body;
+    if (!queryText) {
+      return res.status(400).json({ error: 'queryText diperlukan' });
+    }
+
+    const keys = getActiveApiKeys();
+    const embedding = await computeEmbedding(queryText, keys);
+    if (!embedding) {
+      return res.status(400).json({ error: 'Gagal menghitung embedding. Pastikan Voyage AI atau Jina AI key terkonfigurasi.' });
+    }
+
+    const qdrantResults = await queryQdrantVector(embedding, limit, collectionName, keys);
+    return res.json({
+      query: queryText,
+      results: qdrantResults,
+      vectorDimension: embedding.length
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Vector search error', details: error.message });
+  }
+};
+
+/**
+ * MCP Server Query API (AgriBrain, LeafEngines, Agriculture MCP)
+ */
+export const mcpQueryHandler = async (req: Request, res: Response) => {
+  try {
+    const { serverType, queryText } = req.body;
+    if (!serverType || !queryText) {
+      return res.status(400).json({ error: 'serverType dan queryText diperlukan' });
+    }
+
+    const keys = getActiveApiKeys();
+    const result = await queryMcpServer(serverType, queryText, keys);
+    return res.json({
+      serverType,
+      result: result || { message: `MCP ${serverType} offline atau merespons tanpa payload.` }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Gagal menghubungi MCP Server', details: error.message });
+  }
+};

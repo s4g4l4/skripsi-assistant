@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { 
   Users, Clock, ShieldCheck, ShieldAlert, X, PlusCircle, Ban, 
-  CheckCircle2, RefreshCw, Calendar, Key, MessageSquare, Trash2, Lock, Plus, Minus, Search, UserMinus, UserPlus
+  CheckCircle2, RefreshCw, Calendar, Key, MessageSquare, Trash2, Lock, Plus, Minus, Search, UserMinus, UserPlus, Cpu, Activity
 } from 'lucide-react';
 import { 
   getStoredUsers, extendUserAccess, adjustUserAccessTime, revokeUserAccess, deleteUserAccount, registerOrUpdateUserAccess, UserAccessInfo, 
   getRemainingTimeString, isAccessValid, ADMIN_EMAIL, ADMIN_WA_NUMBER 
 } from '../utils/accessControl';
+import { ResilienceStatusWidget } from './ResilienceStatusWidget';
 
 interface AdminPanelModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface AdminPanelModalProps {
 }
 
 export default function AdminPanelModal({ isOpen, onClose }: AdminPanelModalProps) {
+  const [activeTab, setActiveTab] = useState<'users' | 'resilience'>('users');
   const [users, setUsers] = useState<UserAccessInfo[]>(() => getStoredUsers());
   const [searchQuery, setSearchQuery] = useState('');
   const [customInputs, setCustomInputs] = useState<{
@@ -184,9 +186,45 @@ export default function AdminPanelModal({ isOpen, onClose }: AdminPanelModalProp
           </div>
         )}
 
-        {/* User Table & List */}
-        <div className="mt-4 flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1">
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-2 mt-3 p-1 bg-slate-100 rounded-2xl w-fit">
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all ${
+              activeTab === 'users'
+                ? 'bg-white text-emerald-700 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Kelola Akun & Kuota User</span>
+            <span className="px-1.5 py-0.2 bg-slate-200/80 text-slate-700 rounded-full text-[10px]">
+              {users.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('resilience')}
+            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all ${
+              activeTab === 'resilience'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Keandalan & Keamanan Sistem (Resilience Hub)</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          </button>
+        </div>
+
+        {activeTab === 'resilience' ? (
+          <div className="mt-4 flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1">
+            <ResilienceStatusWidget isAdmin={true} />
+          </div>
+        ) : (
+          /* User Table & List */
+          <div className="mt-4 flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1">
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
             
             {/* Filter & Search Controls */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-slate-200/60">
@@ -467,6 +505,7 @@ export default function AdminPanelModal({ isOpen, onClose }: AdminPanelModalProp
             </a>
           </div>
         </div>
+      )}
 
         {/* Footer */}
         <div className="mt-4 pt-3 border-t border-slate-100 flex justify-end">

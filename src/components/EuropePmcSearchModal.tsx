@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Search, BookOpen, ExternalLink, Download, Copy, CheckCircle2, 
   Sparkles, Filter, FileText, ChevronDown, ChevronUp, X, 
-  Award, Globe, ShieldCheck, BookmarkCheck, ArrowRight, Loader2
+  Award, Globe, ShieldCheck, BookmarkCheck, ArrowRight, Loader2,
+  Database, Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -41,6 +42,7 @@ export const EuropePmcSearchModal: React.FC<Props> = ({
   const [query, setQuery] = useState(initialQuery);
   const [articles, setArticles] = useState<EuropePmcArticle[]>([]);
   const [hitCount, setHitCount] = useState<number>(0);
+  const [isReranked, setIsReranked] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [expandedAbstractId, setExpandedAbstractId] = useState<string | null>(null);
   const [openAccessOnly, setOpenAccessOnly] = useState<boolean>(false);
@@ -60,10 +62,12 @@ export const EuropePmcSearchModal: React.FC<Props> = ({
         pageSize: 15,
         openAccessOnly,
         sortBy,
-        synonym: true
+        synonym: true,
+        unifiedMultiSource: true
       });
       setArticles(result.articles);
       setHitCount(result.hitCount);
+      setIsReranked(Boolean(result.reranked));
     } catch (e) {
       console.error('Search failed:', e);
     } finally {
@@ -108,9 +112,6 @@ export const EuropePmcSearchModal: React.FC<Props> = ({
     }
 
     setImportedIds(prev => [...prev, article.id]);
-    setTimeout(() => {
-      // keep imported state active
-    }, 2000);
   };
 
   const content = (
@@ -123,14 +124,19 @@ export const EuropePmcSearchModal: React.FC<Props> = ({
             <Globe className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-black text-white tracking-tight">Europe PMC Academic Explorer</h2>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg font-black text-white tracking-tight">Academic Multi-Source Explorer</h2>
               <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-extrabold uppercase">
-                40M+ Artikel Live
+                Europe PMC • PubMed • OpenAlex • Tavily
               </span>
+              {isReranked && (
+                <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-extrabold uppercase flex items-center gap-1">
+                  <Layers className="w-3 h-3" /> Cohere Rerank v3.5
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-400">
-              Pencarian langsung literatur ilmiah, jurnal medis, biologi, sains data, dan preprint internasional (Open Access).
+              Pencarian langsung literatur ilmiah, jurnal medis NCBI, indeks sains data OpenAlex, dan grounding riset Tavily.
             </p>
           </div>
         </div>
@@ -172,7 +178,7 @@ export const EuropePmcSearchModal: React.FC<Props> = ({
               }}
               className="bg-slate-950 border border-slate-700/80 text-xs font-bold text-slate-200 rounded-2xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
-              <option value="relevance">Urutkan: Relevansi</option>
+              <option value="relevance">Urutkan: Relevansi AI</option>
               <option value="cited">Urutkan: Paling Banyak Disitasi</option>
               <option value="date">Urutkan: Terbitan Terbaru</option>
             </select>
@@ -256,17 +262,17 @@ export const EuropePmcSearchModal: React.FC<Props> = ({
         {/* Total found info */}
         <div className="flex items-center justify-between text-xs text-slate-400 pb-2 border-b border-slate-800/60">
           <span>
-            Ditemukan <strong className="text-emerald-400">{hitCount.toLocaleString()}</strong> artikel terindeks di Europe PMC
+            Ditemukan <strong className="text-emerald-400">{hitCount.toLocaleString()}</strong> artikel terindeks multi-basis data
           </span>
           <span className="text-[11px] text-slate-400">
-            Sumber Resmi: EBI / Europe PubMed Central
+            Terhubung ke: Europe PMC • PubMed • OpenAlex • Tavily AI
           </span>
         </div>
 
         {isLoading ? (
           <div className="py-20 flex flex-col items-center justify-center space-y-3 text-center">
             <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
-            <p className="text-sm font-bold text-slate-300">Menghubungkan ke Europe PMC RESTful Web Service...</p>
+            <p className="text-sm font-bold text-slate-300">Menghubungkan ke basis data sains global...</p>
             <p className="text-xs text-slate-500 max-w-sm">Mengambil metadata artikel ilmiah, daftar penulis, abstrak, dan tautan PDF resmi.</p>
           </div>
         ) : articles.length === 0 ? (
@@ -283,9 +289,9 @@ export const EuropePmcSearchModal: React.FC<Props> = ({
               const isExpanded = expandedAbstractId === article.id;
               const isCopied = copiedId === article.id;
               const isImported = importedIds.includes(article.id);
-              const journalTitle = article.journalTitle || article.journalInfo?.journal?.title || (article.source === 'PPR' ? 'Europe PMC Preprint' : 'Europe PMC Archive');
+              const journalTitle = article.journalTitle || article.journalInfo?.journal?.title || `${article.source || 'Europe PMC'} Archive`;
               const pdfUrl = article.fullTextUrlList?.fullTextUrl?.find(u => u.documentStyle === 'pdf')?.url || article.fullTextUrlList?.fullTextUrl?.[0]?.url;
-              const doiUrl = article.doi ? `https://doi.org/${article.doi}` : `https://europepmc.org/article/${article.source}/${article.id}`;
+              const doiUrl = article.doi ? `https://doi.org/${article.doi}` : (article.fullTextUrlList?.fullTextUrl?.[0]?.url || `https://europepmc.org/article/${article.source}/${article.id}`);
 
               return (
                 <div 
@@ -295,8 +301,8 @@ export const EuropePmcSearchModal: React.FC<Props> = ({
                   {/* Top Badges & Meta */}
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="px-2.5 py-0.5 bg-blue-500/10 border border-blue-500/30 text-blue-300 text-[11px] font-black rounded-md">
-                        {article.source === 'PPR' ? 'PREPRINT' : 'PEER-REVIEWED'}
+                      <span className="px-2.5 py-0.5 bg-blue-500/10 border border-blue-500/30 text-blue-300 text-[11px] font-black rounded-md uppercase">
+                        {article.source === 'PubMed' ? 'PubMed NCBI' : article.source === 'OpenAlex' ? 'OpenAlex Global' : article.source === 'Tavily' ? 'Tavily Research' : article.source === 'PPR' ? 'Preprint' : 'Peer-Reviewed'}
                       </span>
 
                       {article.isOpenAccess === 'Y' && (
@@ -307,7 +313,13 @@ export const EuropePmcSearchModal: React.FC<Props> = ({
 
                       {typeof article.citedByCount === 'number' && article.citedByCount > 0 && (
                         <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-extrabold rounded-md flex items-center gap-1">
-                          <Award className="w-3 h-3 text-amber-400" /> {article.citedByCount} Citations
+                          <Award className="w-3 h-3 text-amber-400" /> {article.citedByCount} Sitasi
+                        </span>
+                      )}
+
+                      {typeof article.relevanceScore === 'number' && (
+                        <span className="px-2 py-0.5 bg-purple-500/10 border border-purple-500/30 text-purple-300 text-[11px] font-bold rounded-md">
+                          Skor AI: {Math.round(article.relevanceScore * 100)}%
                         </span>
                       )}
 
@@ -322,7 +334,7 @@ export const EuropePmcSearchModal: React.FC<Props> = ({
                       rel="noopener noreferrer"
                       className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 font-bold transition-colors"
                     >
-                      <span>Buka di Europe PMC</span>
+                      <span>Buka Sumber Asli</span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </a>
                   </div>
@@ -337,10 +349,10 @@ export const EuropePmcSearchModal: React.FC<Props> = ({
                   {/* Authors & Publication Source */}
                   <div className="text-xs space-y-1">
                     <p className="text-slate-300 font-semibold">
-                      <span className="text-slate-400">Penulis:</span> {article.authorString || 'Penulis Europe PMC'}
+                      <span className="text-slate-400">Penulis:</span> {article.authorString || 'Penulis Akademik'}
                     </p>
                     <p className="text-emerald-400/90 font-bold">
-                      <span className="text-slate-400 font-normal">Jurnal / Sumber:</span> {journalTitle} 
+                      <span className="text-slate-400 font-normal">Jurnal / Penerbit:</span> {journalTitle} 
                       {article.journalInfo?.volume ? ` (Vol. ${article.journalInfo.volume})` : ''}
                     </p>
                   </div>
@@ -431,9 +443,9 @@ export const EuropePmcSearchModal: React.FC<Props> = ({
       </div>
 
       {/* Footer info */}
-      <div className="p-4 bg-slate-950 border-t border-slate-800 text-center text-[11px] text-slate-400 shrink-0 flex items-center justify-between px-6">
-        <span>Didukung oleh <strong>Europe PMC Open Access API</strong> (EMBL-EBI)</span>
-        <span className="text-emerald-400 font-semibold">Bebas Kuota • Tanpa API Key • Data Real-time</span>
+      <div className="p-4 bg-slate-950 border-t border-slate-800 text-center text-[11px] text-slate-400 shrink-0 flex items-center justify-between px-6 flex-wrap gap-2">
+        <span>Didukung oleh <strong>Europe PMC, PubMed NCBI, OpenAlex, & Tavily AI</strong></span>
+        <span className="text-emerald-400 font-semibold">Integrasi Multi-Key Aktif • Real-time Data Sync</span>
       </div>
 
     </div>

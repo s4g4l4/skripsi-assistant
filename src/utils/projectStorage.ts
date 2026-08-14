@@ -18,36 +18,50 @@ const STORAGE_KEY = 'user_thesis_projects_list';
 export function getUserProjects(userEmail?: string, isAdmin: boolean = false): UserProjectItem[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    let allProjects: UserProjectItem[] = raw ? JSON.parse(raw) : [];
+    let allProjects: UserProjectItem[] = [];
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          allProjects = parsed;
+        }
+      } catch {
+        allProjects = [];
+      }
+    }
 
     // Fallback: If no projects in STORAGE_KEY yet, but active_thesis_data exists, convert it
     if (allProjects.length === 0) {
       const activeRaw = localStorage.getItem('active_thesis_data');
       if (activeRaw) {
-        const activeThesis: ThesisData = JSON.parse(activeRaw);
-        const currentUser = userEmail || getCurrentUserAccess().email;
-        const fallbackProject: UserProjectItem = {
-          id: activeThesis.id || 'thesis_' + Date.now(),
-          userEmail: currentUser,
-          title: activeThesis.research?.title || 'Draft Penelitian Utama',
-          documentType: activeThesis.documentType || 'Skripsi',
-          universityName: activeThesis.university?.name || 'Universitas Indonesia',
-          status: 'Draf Proposal',
-          progress: 35,
-          updatedAt: activeThesis.updatedAt || new Date().toISOString(),
-          thesisData: activeThesis,
-        };
-        allProjects = [fallbackProject];
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(allProjects));
+        try {
+          const activeThesis: ThesisData = JSON.parse(activeRaw);
+          if (activeThesis && typeof activeThesis === 'object') {
+            const currentUser = userEmail || getCurrentUserAccess().email;
+            const fallbackProject: UserProjectItem = {
+              id: activeThesis.id || 'thesis_' + Date.now(),
+              userEmail: currentUser,
+              title: activeThesis.research?.title || 'Draft Penelitian Utama',
+              documentType: activeThesis.documentType || 'Skripsi',
+              universityName: activeThesis.university?.name || 'Universitas Indonesia',
+              status: 'Draf Proposal',
+              progress: 35,
+              updatedAt: activeThesis.updatedAt || new Date().toISOString(),
+              thesisData: activeThesis,
+            };
+            allProjects = [fallbackProject];
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(allProjects));
+          }
+        } catch {}
       }
     }
 
     if (isAdmin) {
-      return allProjects;
+      return Array.isArray(allProjects) ? allProjects : [];
     }
 
     const currentEmail = (userEmail || getCurrentUserAccess().email).toLowerCase();
-    return allProjects.filter(p => (p.userEmail || '').toLowerCase() === currentEmail);
+    return (Array.isArray(allProjects) ? allProjects : []).filter(p => (p?.userEmail || '').toLowerCase() === currentEmail);
   } catch (e) {
     console.error('Error reading user projects from localStorage', e);
     return [];
@@ -57,7 +71,13 @@ export function getUserProjects(userEmail?: string, isAdmin: boolean = false): U
 export function saveUserProject(thesis: ThesisData): UserProjectItem {
   const currentUser = getCurrentUserAccess().email;
   const raw = localStorage.getItem(STORAGE_KEY);
-  const allProjects: UserProjectItem[] = raw ? JSON.parse(raw) : [];
+  let allProjects: UserProjectItem[] = [];
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) allProjects = parsed;
+    } catch {}
+  }
 
   const existingIndex = allProjects.findIndex(p => p.id === thesis.id);
   const projectItem: UserProjectItem = {
@@ -91,8 +111,9 @@ export function deleteUserProject(projectId: string): void {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
-    const allProjects: UserProjectItem[] = JSON.parse(raw);
-    const filtered = allProjects.filter(p => p.id !== projectId);
+    const parsed = JSON.parse(raw);
+    const allProjects: UserProjectItem[] = Array.isArray(parsed) ? parsed : [];
+    const filtered = allProjects.filter(p => p && p.id !== projectId);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
   } catch (e) {
     console.error('Error deleting user project:', e);
@@ -103,8 +124,9 @@ export function openUserProject(projectId: string): void {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
-    const allProjects: UserProjectItem[] = JSON.parse(raw);
-    const found = allProjects.find(p => p.id === projectId);
+    const parsed = JSON.parse(raw);
+    const allProjects: UserProjectItem[] = Array.isArray(parsed) ? parsed : [];
+    const found = allProjects.find(p => p && p.id === projectId);
     if (found && found.thesisData) {
       localStorage.setItem('active_thesis_data', JSON.stringify(found.thesisData));
     }

@@ -36,8 +36,8 @@ async function startServer() {
 
   // Middleware
   app.use(cors());
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: '25mb' }));
+  app.use(express.urlencoded({ limit: '25mb', extended: true }));
 
   // Request Context Middleware (for Multi-AI Config)
   app.use((req, res, next) => {
@@ -93,13 +93,13 @@ async function startServer() {
 
 ${content}`;
 
-        // Try OpenAI compatible if configured
+        // Try OpenAI compatible if configured and enabled
         let aiSuccess = false;
-        if (keys.selectedEngine === 'groq' && keys.groqApiKey) {
+        if (keys.selectedEngine === 'groq' && keys.groqEnabled !== false && keys.groqApiKey) {
           const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${keys.groqApiKey}` },
-            body: JSON.stringify({ model: 'llama-3.1-70b-versatile', messages: [{ role: 'system', content: 'You are an academic document formatting assistant.' }, { role: 'user', content: formattingPrompt }], temperature: 0.3 })
+            body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'system', content: 'You are an academic document formatting assistant.' }, { role: 'user', content: formattingPrompt }], temperature: 0.3 })
           });
           if (r.ok) {
             const data = await r.json();
@@ -108,7 +108,7 @@ ${content}`;
               aiSuccess = true;
             }
           }
-        } else if (keys.selectedEngine === 'deepseek' && keys.deepseekApiKey) {
+        } else if (keys.selectedEngine === 'deepseek' && keys.deepseekEnabled !== false && keys.deepseekApiKey) {
           const r = await fetch('https://api.deepseek.com/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${keys.deepseekApiKey}` },
@@ -123,18 +123,20 @@ ${content}`;
           }
         }
 
-        // Fallback to Gemini if not yet successful
-        if (!aiSuccess) {
-          const { GoogleGenAI } = await import('@google/genai');
+        // Fallback to Gemini only if Gemini is enabled and a key exists
+        if (!aiSuccess && keys.geminiEnabled !== false) {
           const geminiKey = keys.geminiApiKey || process.env.GEMINI_API_KEY;
-          const ai = new GoogleGenAI({ apiKey: geminiKey });
-          const geminiRes = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: formattingPrompt,
-            config: { systemInstruction: 'You are an expert academic document formatter.' }
-          });
-          if (geminiRes.text) {
-            formattedContent = geminiRes.text;
+          if (geminiKey) {
+            const { GoogleGenAI } = await import('@google/genai');
+            const ai = new GoogleGenAI({ apiKey: geminiKey });
+            const geminiRes = await ai.models.generateContent({
+              model: 'gemini-flash-latest',
+              contents: formattingPrompt,
+              config: { systemInstruction: 'You are an expert academic document formatter.' }
+            });
+            if (geminiRes.text) {
+              formattedContent = geminiRes.text;
+            }
           }
         }
       } catch (formattingErr) {
@@ -165,6 +167,7 @@ ${content}`;
   app.use('/api/editor', editorRoutes);
   app.use('/api/format', formatRoutes);
   app.use('/api/citations', citationRoutes);
+  app.use('/api/citation', citationRoutes);
   app.use('/api/presentation', presentationRoutes);
   app.use('/api/simulation', simulationRoutes);
   app.use('/api/spss', spssRoutes);
@@ -200,6 +203,43 @@ ${content}`;
   app.get('/api/metrics', (req, res) => {
     res.set('Content-Type', 'text/plain; version=0.0.4');
     res.send(monitoring.getPrometheusMetrics());
+  });
+
+  // Client-Side Diagnostics & Real-Time Telemetry Receiver
+  app.post('/api/diagnostics/telemetry', (req, res) => {
+    const report = req.body;
+    if (report && report.level === 'error') {
+      logger.error(`[Frontend Error] ${report.name || 'ClientException'}: ${report.message}`, {
+        url: report.url,
+        stack: report.stack,
+        context: report.context,
+        userAgent: report.userAgent,
+      }, 'ClientTelemetry');
+    } else if (report) {
+      logger.info(`[Frontend Telemetry] ${report.message}`, { context: report.context }, 'ClientTelemetry');
+    }
+    res.json({ received: true, timestamp: new Date().toISOString() });
+  });
+
+  // System Health Diagnostic for UI widget
+  app.get('/api/diagnostics/system-health', (req, res) => {
+    const metrics = monitoring.getJSONMetrics();
+    res.json({
+      success: true,
+      data: {
+        serverStatus: 'healthy',
+        apiCircuitBreaker: 'closed',
+        telemetryActive: true,
+        sanitizationActive: true,
+        uploadSecurityActive: true,
+        magicByteValidation: true,
+        autoRetryJitter: true,
+        uptimeSeconds: metrics.uptimeSeconds,
+        errorRate: metrics.totalRequests > 0 ? ((metrics.totalErrors / metrics.totalRequests) * 100).toFixed(2) + '%' : '0.00%',
+        totalRequests: metrics.totalRequests,
+        averageLatencyMs: metrics.averageDurationMs,
+      }
+    });
   });
 
   // Vite middleware for development

@@ -13,6 +13,10 @@ import {
 import { getUserProjects, openUserProject, deleteUserProject, UserProjectItem } from '../utils/projectStorage';
 import AccessExpiredModal from '../components/AccessExpiredModal';
 import AdminPanelModal from '../components/AdminPanelModal';
+import { SecureFileUploadModal } from '../components/SecureFileUploadModal';
+import { ResilienceStatusWidget } from '../components/ResilienceStatusWidget';
+import { SafeSection } from '../components/ErrorBoundary';
+import { validateUserProject, ensureArray, safeGet } from '../utils/validators';
 
 const SIDEBAR_MENU = [
   { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', active: true },
@@ -43,11 +47,12 @@ export default function DashboardPage() {
   const isAdmin = userAccess.role === 'admin' || userAccess.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
   const [projectsList, setProjectsList] = useState<UserProjectItem[]>([]);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   // Refresh user projects
   const refreshProjects = () => {
     const list = getUserProjects(userAccess.email, isAdmin);
-    setProjectsList(list);
+    setProjectsList(ensureArray(list));
   };
 
   useEffect(() => {
@@ -245,18 +250,25 @@ export default function DashboardPage() {
                 </div>
               </button>
               <button 
-                onClick={() => navigate('/proposal/new?step=2', { state: { step: 2 } })}
+                onClick={() => setIsUploadModalOpen(true)}
                 className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:border-amber-300 hover:bg-amber-50 transition-colors shadow-sm group cursor-pointer text-left"
               >
                 <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center group-hover:bg-amber-100 transition-colors">
                   <Upload className="w-6 h-6" />
                 </div>
                 <div className="text-left">
-                  <h3 className="font-bold text-slate-900">Upload Panduan</h3>
-                  <p className="text-slate-500 text-xs">Buku pedoman kampus</p>
+                  <h3 className="font-bold text-slate-900">Upload Berkas Aman</h3>
+                  <p className="text-slate-500 text-xs">Pedoman / Draf (Magic-Byte Guard)</p>
                 </div>
               </button>
             </div>
+
+            {/* Resilience & System Health Hub (Proteksi 9-in-1 - Khusus Admin) */}
+            {isAdmin && (
+              <SafeSection title="Modul Keandalan Sistem (Admin Only)">
+                <ResilienceStatusWidget isAdmin={isAdmin} />
+              </SafeSection>
+            )}
 
             {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -422,83 +434,107 @@ export default function DashboardPage() {
                   </button>
                 </div>
               ) : (
-                <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-100">
-                  {projectsList.map((project) => (
-                    <div 
-                      key={project.id} 
-                      onClick={() => {
-                        openUserProject(project.id);
-                        navigate('/editor');
-                      }}
-                      className="p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 hover:bg-slate-50 transition-colors cursor-pointer group"
-                    >
-                      <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-100 transition-colors">
-                        <FileText className="w-6 h-6" />
-                      </div>
-                      <div className="flex-1 min-w-0 w-full">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
-                            {project.documentType || 'Skripsi'}
-                          </span>
-                          <span className="text-xs text-slate-400">• {project.universityName}</span>
-                          {isAdmin && project.userEmail && (
-                            <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded border">
-                              User: {project.userEmail}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-base font-bold text-slate-900 truncate block group-hover:text-emerald-600 transition-colors">
-                          {project.title}
-                        </span>
-                        <div className="flex items-center gap-3 mt-1.5">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">
-                            {project.status || 'Draf Proposal'}
-                          </span>
-                          <span className="text-xs text-slate-400">
-                            Diubah: {new Date(project.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="w-full sm:w-56 flex items-center gap-3 shrink-0">
-                        <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-emerald-500 rounded-full"
-                            style={{ width: `${project.progress || 35}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm font-bold text-slate-700 w-9 text-right">{project.progress || 35}%</span>
-                        
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setProjectToDelete(project.id);
-                          }}
-                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-1"
-                          title="Hapus Proyek"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-
-                        <button 
-                          onClick={(e) => { 
-                            e.stopPropagation(); 
+                <SafeSection title="Daftar Proyek Skripsi" message="Kendala memuat daftar draf proyek.">
+                  <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-100">
+                    {ensureArray(projectsList).map((rawProject) => {
+                      const project = validateUserProject(rawProject);
+                      return (
+                        <div 
+                          key={project.id} 
+                          onClick={() => {
                             openUserProject(project.id);
-                            navigate('/editor'); 
-                          }} 
-                          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                            navigate('/editor');
+                          }}
+                          className="p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 hover:bg-slate-50 transition-colors cursor-pointer group"
                         >
-                          <ChevronRight className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-100 transition-colors">
+                            <FileText className="w-6 h-6" />
+                          </div>
+                          <div className="flex-1 min-w-0 w-full">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+                                {project.documentType || 'Skripsi'}
+                              </span>
+                              <span className="text-xs text-slate-400">• {project.universityName}</span>
+                              {isAdmin && project.userEmail && (
+                                <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded border">
+                                  User: {project.userEmail}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-base font-bold text-slate-900 truncate block group-hover:text-emerald-600 transition-colors">
+                              {project.title}
+                            </span>
+                            <div className="flex items-center gap-3 mt-1.5">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">
+                                {project.status || 'Draf Proposal'}
+                              </span>
+                              <span className="text-xs text-slate-400">
+                                Diubah: {new Date(project.updatedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="w-full sm:w-56 flex items-center gap-3 shrink-0">
+                            <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-emerald-500 rounded-full"
+                                style={{ width: `${project.progress || 35}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-sm font-bold text-slate-700 w-9 text-right">{project.progress || 35}%</span>
+                            
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setProjectToDelete(project.id);
+                              }}
+                              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-1"
+                              title="Hapus Proyek"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+
+                            <button 
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                openUserProject(project.id);
+                                navigate('/editor'); 
+                              }} 
+                              className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                            >
+                              <ChevronRight className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </SafeSection>
               )}
             </div>
 
           </div>
         </div>
       </main>
+
+      {/* Secure File Upload Modal with Magic-Byte Inspector */}
+      <SecureFileUploadModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        title="Upload Berkas Skripsi / Pedoman Kampus"
+        description="Unggah berkas panduan skripsi universitas atau draf dokumen (.pdf, .docx, .txt). Berkas akan divalidasi dengan Magic-Byte scanner sebelum diproses oleh AI."
+        maxSizeMb={25}
+        onFileAccepted={(file, validation) => {
+          // Navigate to PDF Chat / Proposal with validated file state
+          navigate('/pdf-chat', { 
+            state: { 
+              uploadedFileName: validation.sanitizedName, 
+              fileSizeMb: validation.fileSizeMb,
+              detectedMime: validation.detectedMime 
+            } 
+          });
+        }}
+      />
 
       {/* Modal Hapus Proyek */}
       {projectToDelete && (

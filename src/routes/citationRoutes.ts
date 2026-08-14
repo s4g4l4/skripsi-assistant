@@ -8,17 +8,28 @@ import {
   generateBibliography,
   importFromScholar,
   getStyles,
-  searchEuropePmcHandler
+  searchEuropePmcHandler,
+  searchUnifiedAcademic,
+  scrapeAcademicUrl,
+  vectorSearchHandler,
+  mcpQueryHandler
 } from '../controllers/citationController.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
 
-// Public routes
+// Public routes (Search, Scraping & Bibliography generation)
 router.get('/styles', getStyles);
 router.get('/europepmc/search', searchEuropePmcHandler);
+router.get('/search-unified', searchUnifiedAcademic);
+router.post('/search-unified', searchUnifiedAcademic);
+router.post('/scrape-url', scrapeAcademicUrl);
+router.post('/vector-search', vectorSearchHandler);
+router.post('/mcp-query', mcpQueryHandler);
+router.post('/generate', generateBibliography);
+router.post('/generate-bibliography', generateBibliography);
 
-// Protected routes
+// Protected CRUD citation routes
 router.use(authenticate);
 
 router.post('/', createCitation);
@@ -26,7 +37,6 @@ router.get('/', getCitations);
 router.get('/:id', getCitationDetail);
 router.put('/:id', updateCitation);
 router.delete('/:id', deleteCitation);
-router.post('/generate', generateBibliography);
 router.post('/import', importFromScholar);
 
 export default router;

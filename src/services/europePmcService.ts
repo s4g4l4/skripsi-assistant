@@ -57,13 +57,14 @@ export interface EuropePmcArticle {
   fullTextUrlList?: {
     fullTextUrl: EuropePmcFullTextUrl[];
   };
+  relevanceScore?: number;
 }
 
 export interface EuropePmcSearchResponse {
-  version: string;
+  version?: string;
   hitCount: number;
   nextCursorMark?: string;
-  resultList: {
+  resultList?: {
     result: EuropePmcArticle[];
   };
 }
@@ -74,16 +75,16 @@ export interface SearchOptions {
   openAccessOnly?: boolean;
   sortBy?: 'relevance' | 'cited' | 'date';
   synonym?: boolean;
+  unifiedMultiSource?: boolean;
 }
 
 /**
- * Searches Europe PMC for academic literature, journals, and preprints.
- * Falls back between proxy endpoint and direct European Bioinformatics Institute API.
+ * Searches Europe PMC, PubMed (NCBI API), OpenAlex, Tavily AI Search, and applies Cohere Rerank.
  */
 export async function searchEuropePmc(
   query: string,
   options: SearchOptions = {}
-): Promise<{ articles: EuropePmcArticle[]; hitCount: number }> {
+): Promise<{ articles: EuropePmcArticle[]; hitCount: number; reranked?: boolean }> {
   const trimmed = query.trim();
   if (!trimmed) {
     return { articles: [], hitCount: 0 };
@@ -94,9 +95,50 @@ export async function searchEuropePmc(
     page = 1,
     openAccessOnly = false,
     sortBy = 'relevance',
-    synonym = true
+    synonym = true,
+    unifiedMultiSource = true
   } = options;
 
+  // 1. Try Unified Multi-Source Endpoint First (Europe PMC + PubMed + OpenAlex + Tavily + Cohere Rerank)
+  if (unifiedMultiSource) {
+    try {
+      const res = await fetch('/api/citations/search-unified', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: trimmed, limit: pageSize })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.results && Array.isArray(data.results) && data.results.length > 0) {
+          const mappedArticles: EuropePmcArticle[] = data.results.map((r: any) => ({
+            id: r.id,
+            source: r.source || 'MED',
+            doi: r.doi,
+            title: r.title,
+            authorString: r.authors,
+            journalTitle: r.journalOrPublisher,
+            pubYear: r.year,
+            abstractText: r.abstract,
+            isOpenAccess: r.isOpenAccess ? 'Y' : 'N',
+            citedByCount: r.citationCount || 0,
+            relevanceScore: r.relevanceScore,
+            fullTextUrlList: r.url ? { fullTextUrl: [{ url: r.url, availability: 'Free', availabilityCode: 'F', documentStyle: 'pdf', site: r.source }] } : undefined
+          }));
+
+          return {
+            articles: mappedArticles,
+            hitCount: data.totalFound || mappedArticles.length,
+            reranked: data.rerankedWithCohere
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('Unified multi-source search fallback to direct Europe PMC:', e);
+    }
+  }
+
+  // 2. Direct Europe PMC Search fallback
   let builtQuery = trimmed;
   if (openAccessOnly) {
     builtQuery = `(${builtQuery}) AND (OPEN_ACCESS:y)`;
@@ -116,7 +158,7 @@ export async function searchEuropePmc(
     params.set('sort', 'P_PD_DATE desc');
   }
 
-  // Attempt 1: Direct public API call to Europe PMC
+  // Direct public API call to Europe PMC
   const directUrl = `https://www.ebi.ac.uk/europepmc/webservices/rest/search?${params.toString()}`;
   
   try {
@@ -137,7 +179,7 @@ export async function searchEuropePmc(
     console.warn('Europe PMC direct fetch failed, trying proxy...', directErr);
   }
 
-  // Attempt 2: Server-side proxy endpoint fallback
+  // Server-side proxy endpoint fallback
   try {
     const proxyUrl = `/api/citations/europepmc/search?${params.toString()}`;
     const res = await fetch(proxyUrl);
@@ -171,17 +213,17 @@ export function cleanAbstract(abstractText?: string): string {
 }
 
 /**
- * Converts Europe PMC article to Citation Manager Source format
+ * Converts Europe PMC or Multi-Source article to Citation Manager Source format
  */
 export function convertEuropePmcToSource(article: EuropePmcArticle) {
   const cleanTitle = article.title?.replace(/\.$/, '') || 'Untitled Publication';
   const journalName = article.journalTitle || 
                      article.journalInfo?.journal?.title || 
-                     (article.source === 'PPR' ? 'Europe PMC Preprint' : 'Europe PMC Academic Repository');
+                     (article.source === 'PPR' ? 'Europe PMC Preprint' : `${article.source || 'Europe PMC'} Academic Index`);
   
   const authors = article.authorString || 
                   article.authorList?.author?.map(a => a.fullName || `${a.lastName || ''} ${a.initials || ''}`).filter(Boolean).join(', ') || 
-                  'Europe PMC Author';
+                  'Penulis Akademik';
   
   const year = article.pubYear || 
                (article.journalInfo?.yearOfPublication ? String(article.journalInfo.yearOfPublication) : String(new Date().getFullYear()));
@@ -191,7 +233,7 @@ export function convertEuropePmcToSource(article: EuropePmcArticle) {
                  (article.doi ? `https://doi.org/${article.doi}` : `https://europepmc.org/article/${article.source}/${article.id}`);
 
   return {
-    id: `epmc-${article.source}-${article.id}`,
+    id: `${article.source || 'cite'}-${article.id}`,
     type: 'Journal' as const,
     title: cleanTitle,
     authors,
@@ -204,7 +246,7 @@ export function convertEuropePmcToSource(article: EuropePmcArticle) {
 }
 
 /**
- * Formats Europe PMC article into ready-to-copy citation string
+ * Formats article into ready-to-copy citation string
  */
 export function formatQuickCitation(article: EuropePmcArticle, style: 'APA' | 'IEEE' | 'Harvard' | 'BibTeX' = 'APA'): string {
   const source = convertEuropePmcToSource(article);

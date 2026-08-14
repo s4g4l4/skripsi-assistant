@@ -66,7 +66,10 @@ const getIsolatedKey = (key: string) => {
     'custom_api_keys', 
     'user_access_info', 
     'app_users_db', 
-    'user_thesis_projects_list'
+    'user_thesis_projects_list',
+    'active_thesis_data',
+    'thesis_guidelines',
+    'dukun_skripsi_telemetry_errors'
   ];
   if (globalKeys.includes(key)) return key;
 
